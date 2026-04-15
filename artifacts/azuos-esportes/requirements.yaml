@@ -1,0 +1,23 @@
+packages:
+  "framer-motion": "For hero slider and page transitions"
+  "date-fns": "For date formatting and manipulation"
+  "react-hook-form": "For robust form handling"
+  "@hookform/resolvers": "For Zod schema validation in forms"
+  "clsx": "For conditional class merging"
+  "tailwind-merge": "For merging Tailwind classes securely"
+  "lucide-react": "For icons"
+
+images:
+  - path: "artifacts/azuos-esportes/public/images/hero-1.png"
+    description: "Dark and moody futvolei sand court at night with dramatic golden spotlight lighting, sand texture, cinematic, highly detailed, high contrast"
+    aspect_ratio: "16:9"
+  - path: "artifacts/azuos-esportes/public/images/hero-2.png"
+    description: "Abstract black and gold sports background with dynamic diagonal lines, glowing particles, modern premium athletic brand style"
+    aspect_ratio: "16:9"
+  - path: "artifacts/azuos-esportes/public/images/texture.png"
+    description: "Subtle dark grit sand texture pattern for background overlays, almost pure black with tiny gold specks"
+    aspect_ratio: "16:9"
+
+notes:
+  - "The API hooks are imported from @workspace/api-client-react"
+  - "The app uses a dark theme exclusively, styled with Tailwind v4 inline theme"

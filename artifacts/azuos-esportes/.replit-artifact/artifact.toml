@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "Azuos Esportes"
+version = "1.0.0"
+id = "artifacts/azuos-esportes"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 25236
+
+[services.development]
+run = "pnpm --filter @workspace/azuos-esportes run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/azuos-esportes", "run", "build" ]
+publicDir = "artifacts/azuos-esportes/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "25236"
+BASE_PATH = "/"

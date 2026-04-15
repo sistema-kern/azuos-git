@@ -1,0 +1,1205 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Azuos Esportes — Plataforma Completa</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  :root{
+    --gold:#c9a227;
+    --gold2:#b8911f;
+    --gold-light:#e2b92d;
+    --gold-glow:rgba(201,162,39,.18);
+    --dark:#0a0a0a;
+    --dark2:#101010;
+    --dark3:#181818;
+    --dark4:#1f1f1f;
+    --text:#f0f0f0;
+    --muted:rgba(255,255,255,.45);
+    --border:rgba(255,255,255,.07);
+    --card-bg:rgba(255,255,255,.025);
+  }
+  html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Inter','Helvetica Neue',Arial,sans-serif;color:var(--text)}
+
+  /* ── Slide engine ── */
+  .deck{width:100%;height:100%;position:relative}
+  .slide{
+    position:absolute;inset:0;display:flex;flex-direction:column;
+    justify-content:center;align-items:center;
+    padding:56px 80px;opacity:0;pointer-events:none;
+    transition:opacity .45s ease,transform .45s ease;
+    transform:translateY(24px);overflow:hidden;
+  }
+  .slide.active{opacity:1;pointer-events:all;transform:translateY(0)}
+
+  /* ── Progress bar ── */
+  #progress{position:fixed;top:0;left:0;height:2px;background:linear-gradient(90deg,var(--gold),var(--gold-light));transition:width .4s ease;z-index:200;box-shadow:0 0 12px var(--gold)}
+
+  /* ── Counter ── */
+  #counter{position:fixed;top:22px;right:32px;font-size:12px;color:var(--muted);z-index:200;letter-spacing:.1em;font-weight:600}
+  #counter em{color:var(--gold);font-style:normal}
+
+  /* ── PDF button ── */
+  #printbtn{
+    position:fixed;top:16px;left:32px;z-index:200;
+    background:rgba(201,162,39,.12);color:var(--gold);
+    border:1px solid rgba(201,162,39,.3);border-radius:8px;
+    padding:7px 18px;font-weight:700;font-size:12px;cursor:pointer;
+    letter-spacing:.06em;transition:all .2s;text-transform:uppercase;
+  }
+  #printbtn:hover{background:var(--gold);color:#000}
+
+  /* ── Watermark logo ── */
+  .logo-mark{position:fixed;top:14px;left:50%;transform:translateX(-50%);z-index:200}
+  .logo-mark img{height:28px;opacity:.55;filter:brightness(1.1)}
+
+  /* ── Nav ── */
+  #nav{
+    position:fixed;bottom:28px;left:50%;transform:translateX(-50%);
+    display:flex;align-items:center;gap:10px;z-index:200;
+    background:rgba(15,15,15,.95);backdrop-filter:blur(20px);
+    border:1px solid var(--border);border-radius:50px;padding:9px 18px;
+    box-shadow:0 8px 32px rgba(0,0,0,.5)
+  }
+  .dot{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.15);cursor:pointer;transition:all .3s}
+  .dot.active{background:var(--gold);width:22px;border-radius:4px;box-shadow:0 0 8px var(--gold)}
+  #nav button{background:none;border:none;color:rgba(255,255,255,.5);cursor:pointer;padding:2px 8px;font-size:17px;transition:color .2s}
+  #nav button:hover{color:var(--gold)}
+
+  /* ── KEY REUSABLE ELEMENTS ── */
+
+  .section-label{
+    font-size:10px;font-weight:800;letter-spacing:.18em;
+    color:var(--gold);text-transform:uppercase;margin-bottom:10px;
+    display:flex;align-items:center;gap:8px;
+  }
+  .section-label::before{content:'';width:24px;height:1px;background:var(--gold)}
+
+  .accent-line{width:40px;height:2px;background:linear-gradient(90deg,var(--gold),var(--gold-light));border-radius:2px;margin-bottom:18px}
+
+  .tag{
+    display:inline-flex;align-items:center;gap:6px;
+    padding:4px 14px;background:rgba(201,162,39,.1);
+    border:1px solid rgba(201,162,39,.25);border-radius:50px;
+    font-size:11px;color:var(--gold);font-weight:700;letter-spacing:.06em;
+    margin-bottom:6px;
+  }
+
+  /* ── TWO-COL ── */
+  .two-col{display:grid;grid-template-columns:1fr 1fr;gap:64px;align-items:center;width:100%;max-width:1200px}
+  .two-col.wide{grid-template-columns:1.1fr 0.9fr}
+  .two-col.flip{direction:rtl}.two-col.flip>*{direction:ltr}
+
+  /* ── TEXT BLOCK ── */
+  .text-block h2{font-size:clamp(28px,2.6vw,46px);font-weight:800;line-height:1.15;letter-spacing:-.025em;margin-bottom:14px}
+  .text-block h2 em{color:var(--gold);font-style:normal}
+  .text-block p{font-size:15px;color:var(--muted);line-height:1.75;margin-bottom:10px}
+
+  /* ── FEAT LIST ── */
+  .feat-list{list-style:none;display:flex;flex-direction:column;gap:10px;margin-top:20px}
+  .feat-list li{display:flex;align-items:flex-start;gap:12px;font-size:14px;font-weight:500;color:rgba(255,255,255,.85);line-height:1.5}
+  .feat-list li .ic{flex-shrink:0;width:22px;height:22px;border-radius:6px;background:rgba(201,162,39,.12);border:1px solid rgba(201,162,39,.2);display:flex;align-items:center;justify-content:center;font-size:11px;margin-top:1px}
+
+  /* ── BROWSER MOCKUP ── */
+  .mockup{
+    position:relative;border-radius:12px;overflow:hidden;flex-shrink:0;
+    box-shadow:0 32px 64px rgba(0,0,0,.7),0 0 0 1px rgba(255,255,255,.05);
+    background:var(--dark3);
+  }
+  .mockup::after{
+    content:'';position:absolute;inset:0;
+    background:linear-gradient(to bottom,rgba(0,0,0,.1) 0%,transparent 25%,transparent 75%,rgba(0,0,0,.2) 100%);
+    z-index:1;pointer-events:none
+  }
+  .mockup-bar{background:#1a1a1a;padding:9px 14px;display:flex;align-items:center;gap:6px;border-bottom:1px solid rgba(255,255,255,.05)}
+  .mockup-bar span{width:9px;height:9px;border-radius:50%}
+  .mockup-bar .r{background:#ff5f57}.mockup-bar .y{background:#febc2e}.mockup-bar .g{background:#28c840}
+  .mockup-url{flex:1;margin:0 12px;background:rgba(255,255,255,.05);border-radius:4px;padding:3px 10px;font-size:11px;color:rgba(255,255,255,.3);letter-spacing:.01em}
+  .mockup img{width:100%;display:block;max-width:580px}
+
+  /* ── CARD GRID ── */
+  .cards{display:grid;gap:16px;width:100%}
+  .cards.col3{grid-template-columns:repeat(3,1fr);max-width:1080px}
+  .cards.col4{grid-template-columns:repeat(4,1fr);max-width:1140px}
+  .cards.col2{grid-template-columns:repeat(2,1fr);max-width:860px}
+  .card{background:var(--card-bg);border:1px solid var(--border);border-radius:14px;padding:24px;transition:all .25s}
+  .card:hover{border-color:rgba(201,162,39,.2);background:rgba(201,162,39,.04)}
+  .card-icon{font-size:26px;margin-bottom:12px}
+  .card h4{font-size:15px;font-weight:700;margin-bottom:7px}
+  .card p{font-size:13px;color:var(--muted);line-height:1.6}
+
+  /* ── STAT CARDS ── */
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;max-width:860px;width:100%}
+  .stat{background:var(--card-bg);border:1px solid var(--border);border-radius:14px;padding:28px 20px;text-align:center}
+  .stat .num{font-size:40px;font-weight:900;color:var(--gold);line-height:1;letter-spacing:-.02em}
+  .stat .lbl{font-size:12px;color:var(--muted);margin-top:8px;line-height:1.5;font-weight:500}
+
+  /* ── TIMELINE ── */
+  .timeline{display:flex;flex-direction:column;gap:0;max-width:580px;width:100%}
+  .tl{display:flex;gap:20px;padding-bottom:24px;position:relative}
+  .tl:not(:last-child)::after{content:'';position:absolute;left:15px;top:32px;bottom:0;width:1px;background:var(--border)}
+  .tl-dot{flex-shrink:0;width:32px;height:32px;border-radius:50%;background:rgba(201,162,39,.12);border:1.5px solid rgba(201,162,39,.5);display:flex;align-items:center;justify-content:center;font-size:13px}
+  .tl-content h4{font-size:15px;font-weight:700;margin-bottom:3px;padding-top:4px}
+  .tl-content p{font-size:13px;color:var(--muted);line-height:1.55}
+
+  /* ── COVER STYLES ── */
+  .slide-cover{background:radial-gradient(ellipse 90% 70% at 50% -10%,rgba(201,162,39,.14) 0%,transparent 65%),var(--dark)}
+  .cover-logo{margin-bottom:36px}
+  .cover-logo img{height:72px;filter:drop-shadow(0 0 24px rgba(201,162,39,.35))}
+  .cover-headline{font-size:clamp(48px,5.5vw,84px);font-weight:900;line-height:1.05;text-align:center;letter-spacing:-.035em}
+  .cover-headline em{color:var(--gold);font-style:normal}
+  .cover-sub{font-size:clamp(14px,1.4vw,19px);color:var(--muted);margin-top:20px;text-align:center;max-width:580px;font-weight:400;line-height:1.7}
+  .cover-badge{display:inline-flex;align-items:center;gap:10px;margin-top:44px;padding:10px 28px;border:1px solid rgba(201,162,39,.3);border-radius:50px;font-size:13px;color:var(--gold);font-weight:700;letter-spacing:.08em;background:rgba(201,162,39,.06)}
+  .cover-badge .pulse{width:7px;height:7px;background:var(--gold);border-radius:50%;animation:pulse 1.6s infinite}
+  @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(1.6)}}
+
+  /* ── PILL BADGES ── */
+  .pill{display:inline-flex;align-items:center;gap:6px;padding:6px 16px;border-radius:50px;font-size:12px;font-weight:700;letter-spacing:.04em}
+  .pill-gold{background:var(--gold);color:#000}
+  .pill-outline{border:1px solid var(--border);color:rgba(255,255,255,.6)}
+
+  /* ── HERO IMAGE slide ── */
+  .hero-img{position:absolute;inset:0;background-size:cover;background-position:center;z-index:0}
+  .hero-img::after{content:'';position:absolute;inset:0;background:rgba(0,0,0,.72)}
+  .hero-content{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;text-align:center}
+
+  /* ── FLOW STEPS ── */
+  .flow{display:flex;align-items:flex-start;gap:0;width:100%;max-width:980px;margin-top:32px}
+  .flow-step{flex:1;display:flex;flex-direction:column;align-items:center;text-align:center;padding:0 16px;position:relative}
+  .flow-step:not(:last-child)::after{content:'→';position:absolute;right:-14px;top:20px;color:rgba(201,162,39,.4);font-size:18px;font-weight:700}
+  .flow-num{width:44px;height:44px;border-radius:50%;background:rgba(201,162,39,.12);border:1.5px solid rgba(201,162,39,.4);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:var(--gold);margin-bottom:12px}
+  .flow-step h5{font-size:13px;font-weight:700;margin-bottom:5px}
+  .flow-step p{font-size:12px;color:var(--muted);line-height:1.5}
+
+  /* ── PRICING GRID ── */
+  .price-table{width:100%;max-width:760px;border-collapse:collapse;border-radius:12px;overflow:hidden;border:1px solid var(--border)}
+  .price-table thead{background:rgba(201,162,39,.1)}
+  .price-table th{padding:12px 20px;text-align:left;font-size:12px;font-weight:700;color:var(--gold);letter-spacing:.08em;text-transform:uppercase}
+  .price-table td{padding:11px 20px;font-size:13px;border-top:1px solid var(--border);color:rgba(255,255,255,.8)}
+  .price-table tr:hover td{background:rgba(255,255,255,.02)}
+  .price-table .val{font-weight:700;color:#fff}
+
+  /* ── EMAIL MKT ── */
+  .email-card{background:var(--dark3);border:1px solid var(--border);border-radius:12px;overflow:hidden;max-width:460px;width:100%;box-shadow:0 20px 40px rgba(0,0,0,.5)}
+  .email-header{background:linear-gradient(135deg,rgba(201,162,39,.2),rgba(201,162,39,.05));padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px}
+  .email-header img{height:24px}
+  .email-body{padding:20px}
+  .email-field{margin-bottom:12px}
+  .email-field label{font-size:10px;font-weight:700;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;display:block;margin-bottom:4px}
+  .email-field .val{font-size:13px;color:rgba(255,255,255,.85)}
+  .email-preview{background:var(--dark);border:1px dashed rgba(201,162,39,.2);border-radius:8px;padding:14px;margin-top:12px;font-size:12px;color:var(--muted);line-height:1.6;font-style:italic}
+
+  /* ── CONCLUSION ── */
+  .slide-conclusion{background:radial-gradient(ellipse 100% 80% at 50% 110%,rgba(201,162,39,.12) 0%,transparent 60%),var(--dark)}
+  .big-headline{font-size:clamp(40px,5vw,70px);font-weight:900;text-align:center;line-height:1.1;letter-spacing:-.03em}
+  .big-headline em{color:var(--gold);font-style:normal}
+
+  /* ── CNPJ block ── */
+  .cnpj-block{font-size:12px;color:rgba(255,255,255,.25);letter-spacing:.08em;margin-top:8px;text-align:center}
+
+  /* ── COMPANY INFO STRIP ── */
+  .info-strip{display:flex;gap:32px;margin-top:32px;flex-wrap:wrap;justify-content:center}
+  .info-item{display:flex;align-items:center;gap:8px;font-size:13px;color:rgba(255,255,255,.5)}
+  .info-item strong{color:rgba(255,255,255,.85)}
+
+  /* ── PRINT ── */
+  @media print{
+    *{
+      -webkit-print-color-adjust:exact!important;
+      print-color-adjust:exact!important;
+      color-adjust:exact!important;
+    }
+    html,body{
+      overflow:visible!important;
+      height:auto!important;
+      width:100%!important;
+      background:#0a0a0a!important;
+    }
+    .deck{
+      position:static!important;
+      width:100%!important;
+      height:auto!important;
+    }
+    .slide{
+      position:relative!important;
+      opacity:1!important;
+      transform:none!important;
+      pointer-events:all!important;
+      page-break-after:always!important;
+      break-after:page!important;
+      min-height:100vh!important;
+      width:100%!important;
+      display:flex!important;
+      background:#0a0a0a!important;
+      padding:56px 80px!important;
+    }
+    .slide-cover{
+      background:radial-gradient(ellipse 90% 70% at 50% -10%,rgba(201,162,39,.14) 0%,transparent 65%),#0a0a0a!important;
+    }
+    .slide-conclusion{
+      background:radial-gradient(ellipse 100% 80% at 50% 110%,rgba(201,162,39,.12) 0%,transparent 60%),#0a0a0a!important;
+    }
+    img{
+      max-width:100%!important;
+      display:block!important;
+      -webkit-print-color-adjust:exact!important;
+    }
+    .mockup img{
+      width:100%!important;
+      max-width:520px!important;
+      height:auto!important;
+    }
+    .mockup{
+      box-shadow:none!important;
+    }
+    .two-col{
+      display:grid!important;
+      grid-template-columns:1fr 1fr!important;
+    }
+    .cards.col3{grid-template-columns:repeat(3,1fr)!important}
+    .cards.col4{grid-template-columns:repeat(4,1fr)!important}
+    .cards.col2{grid-template-columns:repeat(2,1fr)!important}
+    .card{background:rgba(255,255,255,.025)!important;border:1px solid rgba(255,255,255,.07)!important}
+    .stat{background:rgba(255,255,255,.025)!important;border:1px solid rgba(255,255,255,.07)!important}
+    #nav,#printbtn,#counter,#progress,.logo-mark{display:none!important}
+  }
+</style>
+</head>
+<body>
+<div id="progress"></div>
+<div id="counter"><em id="cur">1</em> / <span id="tot">15</span></div>
+<button id="printbtn" onclick="window.print()">⬇ PDF</button>
+<div class="logo-mark"><img src="/logo-azuos.png" alt="Azuos Esportes"></div>
+
+<div class="deck" id="deck">
+
+  <!-- ══════════════════════════════════════════
+       1. CAPA
+  ══════════════════════════════════════════ -->
+  <div class="slide slide-cover active">
+    <div class="cover-logo"><img src="/logo-azuos.png" alt="Azuos Esportes"></div>
+    <div class="cover-headline">Plataforma digital completa<br>para <em>Azuos Esportes</em></div>
+    <p class="cover-sub">Torneios, agendamentos, aulas, email marketing, cupons de desconto e painel de gestão — tudo em um único sistema, no ar.</p>
+    <div class="cover-badge"><span class="pulse"></span>Sistema ao vivo</div>
+    <div class="cnpj-block" id="cnpj-block">Azuos Esportes · CNPJ 12.484.460/0001-11 · Novo Hamburgo – RS</div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       2. HOME / PRESENÇA DIGITAL
+  ══════════════════════════════════════════ -->
+  <div class="slide" style="background:var(--dark2)">
+    <div class="two-col wide">
+      <div class="text-block">
+        <div class="section-label">Presença Digital</div>
+        <div class="accent-line"></div>
+        <h2>Site profissional que<br><em>representa a marca</em></h2>
+        <p>A primeira impressão dos seus clientes é o site. Hero animado com imagens reais da arena, design 100% alinhado à identidade visual da Azuos.</p>
+        <ul class="feat-list">
+          <li><span class="ic">🖼</span>Hero animado com imagens reais da arena</li>
+          <li><span class="ic">📱</span>100% responsivo — celular, tablet e desktop</li>
+          <li><span class="ic">🗺</span>Navegação para agendamento, torneios e aulas</li>
+          <li><span class="ic">📸</span>Galeria de fotos integrada e editável</li>
+          <li><span class="ic">🏢</span>Informações da empresa e Instagram linkado</li>
+        </ul>
+      </div>
+      <div class="mockup">
+        <div class="mockup-bar">
+          <span class="r"></span><span class="y"></span><span class="g"></span>
+          <div class="mockup-url">azuos-arena-manager.replit.app</div>
+        </div>
+        <img src="/screenshots/home.jpg" alt="Home Azuos">
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       3. AGENDAMENTO DE QUADRAS
+  ══════════════════════════════════════════ -->
+  <div class="slide" style="background:var(--dark)">
+    <div class="two-col flip">
+      <div class="text-block">
+        <div class="section-label">Agendamento Online</div>
+        <div class="accent-line"></div>
+        <h2>Reserve sua quadra e<br><em>pague na hora pelo PIX</em></h2>
+        <p>O cliente escolhe data, quadra e horário direto no site. Confirmação automática via PIX — sem ligação, sem intermediário.</p>
+        <ul class="feat-list">
+          <li><span class="ic">📅</span>Calendário interativo com disponibilidade em tempo real</li>
+          <li><span class="ic">🏟</span>4 quadras configuráveis (nome, preço, tipo)</li>
+          <li><span class="ic">💰</span>Preços dinâmicos: manhã, tarde e noite (dia útil / fim de semana)</li>
+          <li><span class="ic">🎟</span>Aplicação de cupom de desconto no checkout</li>
+          <li><span class="ic">📲</span>QR Code PIX gerado automaticamente</li>
+        </ul>
+      </div>
+      <div class="mockup">
+        <div class="mockup-bar">
+          <span class="r"></span><span class="y"></span><span class="g"></span>
+          <div class="mockup-url">azuos-arena-manager.replit.app/agendamento</div>
+        </div>
+        <img src="/screenshots/agendamento.jpg" alt="Agendamento">
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       4. PLANO MENSAL
+  ══════════════════════════════════════════ -->
+  <div class="slide" style="background:var(--dark2)">
+    <div style="text-align:center;margin-bottom:40px">
+      <div class="section-label" style="justify-content:center">Receita Recorrente</div>
+      <div class="accent-line" style="margin:0 auto 16px"></div>
+      <h2 style="font-size:clamp(28px,2.8vw,46px);font-weight:800;letter-spacing:-.025em">Plano Mensal — <em style="color:var(--gold)">horário fixo todo mês</em></h2>
+      <p style="font-size:15px;color:var(--muted);margin-top:10px;max-width:600px;margin-inline:auto;line-height:1.7">Clientes que querem regularidade reservam seu horário fixo semanal e pagam mensalmente. Previsibilidade de receita para a arena, comodidade para o cliente.</p>
+    </div>
+    <div class="cards col3" style="max-width:900px">
+      <div class="card">
+        <div class="card-icon">🔒</div>
+        <h4>Horário Garantido</h4>
+        <p>O cliente reserva um turno fixo (ex: toda terça 20h) por um mês inteiro com prioridade sobre avulsos.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">💳</div>
+        <h4>Pagamento Mensal</h4>
+        <p>Cobrança única via Mercado Pago. PIX, cartão ou boleto — o cliente escolhe na hora do checkout.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">🔔</div>
+        <h4>Alerta de Vencimento</h4>
+        <p>O sistema envia lembretes automáticos por email quando o plano está prestes a vencer.</p>
+      </div>
+    </div>
+    <div style="margin-top:24px;display:flex;gap:12px;flex-wrap:wrap;justify-content:center">
+      <span class="pill pill-gold">Receita previsível</span>
+      <span class="pill pill-outline">Gestão no admin</span>
+      <span class="pill pill-outline">Histórico por cliente</span>
+      <span class="pill pill-outline">Controle de inadimplência</span>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       5. BEACH TENNIS / FUTVOLEI
+  ══════════════════════════════════════════ -->
+  <div class="slide" style="background:var(--dark)">
+    <div class="two-col wide">
+      <div class="text-block">
+        <div class="section-label">Aulas</div>
+        <div class="accent-line"></div>
+        <h2>Aulas de Beach Tennis<br><em>com agendamento e pagamento online</em></h2>
+        <p>O aluno acessa, escolhe quantidade de pessoas, data e horário, e paga tudo online. Sem agenda manual, sem transferências informais.</p>
+        <ul class="feat-list">
+          <li><span class="ic">👤</span>Preços progressivos por número de alunos (1 a 4)</li>
+          <li><span class="ic">📆</span>Seleção de data e horário com calendário interativo</li>
+          <li><span class="ic">🎓</span>Aula avulsa ou plano mensal de aulas</li>
+          <li><span class="ic">✅</span>Confirmação automática no ato do pagamento</li>
+          <li><span class="ic">📧</span>Email de confirmação enviado automaticamente</li>
+        </ul>
+      </div>
+      <div class="mockup">
+        <div class="mockup-bar">
+          <span class="r"></span><span class="y"></span><span class="g"></span>
+          <div class="mockup-url">azuos-arena-manager.replit.app/beach-tennis</div>
+        </div>
+        <img src="/screenshots/beach-tennis.jpg" alt="Beach Tennis">
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       6. COPA AZUOS — TORNEIOS
+  ══════════════════════════════════════════ -->
+  <div class="slide" style="background:var(--dark2)">
+    <div class="two-col flip">
+      <div class="text-block">
+        <div class="section-label">Torneios</div>
+        <div class="accent-line"></div>
+        <h2><em>Copa Azuos</em> —<br>sistema completo de torneios</h2>
+        <p>Da inscrição até o pódio. Crie categorias, gere grupos, lance resultados e o sistema calcula ranking em tempo real.</p>
+        <ul class="feat-list">
+          <li><span class="ic">👥</span>Múltiplas categorias por torneio (Misto A, B, C…)</li>
+          <li><span class="ic">📊</span>Fase de Grupos com standings automáticos</li>
+          <li><span class="ic">🏆</span>Eliminatórias: Oitavas → Quartas → Semis → Final</li>
+          <li><span class="ic">🏟</span>Quadra atribuída por jogo (visível para atletas)</li>
+          <li><span class="ic">🥇</span>Ranking geral acumulado por categoria</li>
+          <li><span class="ic">🤝</span>Patrocinadores exibidos na página do torneio</li>
+        </ul>
+      </div>
+      <div class="mockup">
+        <div class="mockup-bar">
+          <span class="r"></span><span class="y"></span><span class="g"></span>
+          <div class="mockup-url">azuos-arena-manager.replit.app/copa-azuos</div>
+        </div>
+        <img src="/screenshots/copa.jpg" alt="Copa Azuos">
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       7. INSCRIÇÃO EM TORNEIOS + PAGAMENTO
+  ══════════════════════════════════════════ -->
+  <div class="slide" style="background:var(--dark)">
+    <div style="text-align:center;margin-bottom:36px">
+      <div class="section-label" style="justify-content:center">Inscrição em Torneios</div>
+      <div class="accent-line" style="margin:0 auto 14px"></div>
+      <h2 style="font-size:clamp(26px,2.6vw,42px);font-weight:800;letter-spacing:-.025em">Fluxo completo: <em style="color:var(--gold)">inscrição → PIX → confirmação</em></h2>
+      <p style="font-size:14px;color:var(--muted);max-width:560px;margin:10px auto 0;line-height:1.7">Tudo automatizado — o atleta se inscreve, paga e recebe confirmação por email sem intervenção manual da equipe Azuos.</p>
+    </div>
+    <div class="flow">
+      <div class="flow-step">
+        <div class="flow-num">1</div>
+        <h5>Escolhe categoria</h5>
+        <p>Seleciona a dupla e a categoria no site</p>
+      </div>
+      <div class="flow-step">
+        <div class="flow-num">2</div>
+        <h5>Aplica cupom</h5>
+        <p>Campo de cupom com desconto em % ou R$</p>
+      </div>
+      <div class="flow-step">
+        <div class="flow-num">3</div>
+        <h5>Gera PIX</h5>
+        <p>QR Code + copia-e-cola via Mercado Pago</p>
+      </div>
+      <div class="flow-step">
+        <div class="flow-num">4</div>
+        <h5>Webhook</h5>
+        <p>Pagamento detectado em segundos automaticamente</p>
+      </div>
+      <div class="flow-step">
+        <div class="flow-num">5</div>
+        <h5>Email enviado</h5>
+        <p>Confirmação automática para o atleta</p>
+      </div>
+    </div>
+    <div style="margin-top:32px;display:flex;gap:16px;flex-wrap:wrap;justify-content:center">
+      <div style="padding:14px 24px;background:var(--card-bg);border:1px solid var(--border);border-radius:10px;text-align:center;min-width:160px">
+        <div style="font-size:20px;margin-bottom:6px">🎟</div>
+        <div style="font-size:12px;font-weight:700;margin-bottom:3px">Cupons de desconto</div>
+        <div style="font-size:11px;color:var(--muted)">% ou valor fixo</div>
+      </div>
+      <div style="padding:14px 24px;background:var(--card-bg);border:1px solid var(--border);border-radius:10px;text-align:center;min-width:160px">
+        <div style="font-size:20px;margin-bottom:6px">⏳</div>
+        <div style="font-size:12px;font-weight:700;margin-bottom:3px">PIX com expiração</div>
+        <div style="font-size:11px;color:var(--muted)">30 min para pagar</div>
+      </div>
+      <div style="padding:14px 24px;background:var(--card-bg);border:1px solid var(--border);border-radius:10px;text-align:center;min-width:160px">
+        <div style="font-size:20px;margin-bottom:6px">📧</div>
+        <div style="font-size:12px;font-weight:700;margin-bottom:3px">Email automático</div>
+        <div style="font-size:11px;color:var(--muted)">Confirmação e cancelamento</div>
+      </div>
+      <div style="padding:14px 24px;background:var(--card-bg);border:1px solid var(--border);border-radius:10px;text-align:center;min-width:160px">
+        <div style="font-size:20px;margin-bottom:6px">🔄</div>
+        <div style="font-size:12px;font-weight:700;margin-bottom:3px">Polling em tempo real</div>
+        <div style="font-size:11px;color:var(--muted)">Atualização automática na tela</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       8. CUPONS DE DESCONTO
+  ══════════════════════════════════════════ -->
+  <div class="slide" style="background:var(--dark2)">
+    <div class="two-col">
+      <div class="text-block">
+        <div class="section-label">Cupons de Desconto</div>
+        <div class="accent-line"></div>
+        <h2>Promoções e retenção<br>com <em>cupons inteligentes</em></h2>
+        <p>Crie cupons de desconto diretamente no painel admin. Use para campanhas de lançamento, fidelização ou parcerias.</p>
+        <ul class="feat-list">
+          <li><span class="ic">%</span>Desconto percentual (ex: 20% off)</li>
+          <li><span class="ic">R$</span>Desconto fixo em reais (ex: R$ 30 off)</li>
+          <li><span class="ic">🔢</span>Limite de usos por cupom</li>
+          <li><span class="ic">📅</span>Data de expiração configurável</li>
+          <li><span class="ic">🏆</span>Cupons por torneio ou globais</li>
+          <li><span class="ic">📊</span>Histórico de usos no admin</li>
+        </ul>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:14px;max-width:400px;width:100%">
+        <div style="background:var(--dark3);border:1px solid var(--border);border-radius:12px;padding:20px">
+          <div style="font-size:10px;font-weight:700;color:var(--gold);letter-spacing:.12em;margin-bottom:12px;text-transform:uppercase">Cupom Ativo</div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+            <span style="font-size:22px;font-weight:900;color:#fff;letter-spacing:.05em">COPA20</span>
+            <span style="background:rgba(201,162,39,.15);border:1px solid rgba(201,162,39,.3);color:var(--gold);padding:4px 14px;border-radius:50px;font-size:12px;font-weight:700">20% OFF</span>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <div style="background:var(--dark);border-radius:8px;padding:10px">
+              <div style="font-size:10px;color:var(--muted);margin-bottom:3px">Usos</div>
+              <div style="font-size:15px;font-weight:700">12 / 50</div>
+            </div>
+            <div style="background:var(--dark);border-radius:8px;padding:10px">
+              <div style="font-size:10px;color:var(--muted);margin-bottom:3px">Expira em</div>
+              <div style="font-size:15px;font-weight:700">15 dias</div>
+            </div>
+          </div>
+        </div>
+        <div style="background:var(--dark3);border:1px solid var(--border);border-radius:12px;padding:20px">
+          <div style="font-size:10px;font-weight:700;color:var(--gold);letter-spacing:.12em;margin-bottom:12px;text-transform:uppercase">Cupom Fixo</div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+            <span style="font-size:22px;font-weight:900;color:#fff;letter-spacing:.05em">VIP30</span>
+            <span style="background:rgba(40,200,90,.1);border:1px solid rgba(40,200,90,.25);color:#4de88a;padding:4px 14px;border-radius:50px;font-size:12px;font-weight:700">R$ 30 OFF</span>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <div style="background:var(--dark);border-radius:8px;padding:10px">
+              <div style="font-size:10px;color:var(--muted);margin-bottom:3px">Usos</div>
+              <div style="font-size:15px;font-weight:700">3 / 10</div>
+            </div>
+            <div style="background:var(--dark);border-radius:8px;padding:10px">
+              <div style="font-size:10px;color:var(--muted);margin-bottom:3px">Escopo</div>
+              <div style="font-size:15px;font-weight:700">Copa Azuos</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       9. EMAIL MARKETING
+  ══════════════════════════════════════════ -->
+  <div class="slide" style="background:var(--dark)">
+    <div class="two-col flip">
+      <div class="text-block">
+        <div class="section-label">Email Marketing</div>
+        <div class="accent-line"></div>
+        <h2>Campanhas de email<br><em>direto do painel admin</em></h2>
+        <p>Crie, segmente e dispare campanhas de email para seus clientes sem depender de ferramentas externas. Tudo integrado ao sistema Azuos.</p>
+        <ul class="feat-list">
+          <li><span class="ic">✉</span>Criação de campanhas com editor de template</li>
+          <li><span class="ic">👥</span>Grupos de destinatários segmentados</li>
+          <li><span class="ic">📤</span>Disparo imediato ou agendado</li>
+          <li><span class="ic">📊</span>Histórico de campanhas enviadas</li>
+          <li><span class="ic">🔧</span>SMTP próprio configurado</li>
+          <li><span class="ic">🏷</span>Remetente personalizado "Azuos Esportes"</li>
+        </ul>
+      </div>
+      <div class="email-card">
+        <div class="email-header">
+          <img src="/logo-azuos.png" alt="Azuos">
+          <div>
+            <div style="font-size:13px;font-weight:700">Nova Campanha</div>
+            <div style="font-size:11px;color:var(--muted)">Email Marketing · Admin</div>
+          </div>
+        </div>
+        <div class="email-body">
+          <div class="email-field">
+            <label>Para (grupo)</label>
+            <div class="val">📋 Inscritos Copa Azuos (47 contatos)</div>
+          </div>
+          <div class="email-field">
+            <label>Assunto</label>
+            <div class="val">🏆 Copa Azuos — Chaves divulgadas!</div>
+          </div>
+          <div class="email-field">
+            <label>Remetente</label>
+            <div class="val" id="remetente-val">Azuos Esportes &lt;contato@azuos.com.br&gt;</div>
+          </div>
+          <div class="email-preview">
+            "Olá, atleta! As chaves da Copa Azuos foram divulgadas. Acesse o site e confira seu grupo, adversários e horários dos jogos..."
+          </div>
+          <div style="margin-top:14px">
+            <div style="background:linear-gradient(90deg,var(--gold),var(--gold-light));color:#000;font-weight:800;font-size:13px;padding:10px;border-radius:8px;text-align:center;letter-spacing:.03em;cursor:pointer">
+              ✈ Disparar Campanha
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       10. NEWSLETTER
+  ══════════════════════════════════════════ -->
+  <div class="slide" style="background:var(--dark2)">
+    <div style="text-align:center;margin-bottom:44px">
+      <div class="section-label" style="justify-content:center">Newsletter</div>
+      <div class="accent-line" style="margin:0 auto 16px"></div>
+      <h2 style="font-size:clamp(26px,2.8vw,44px);font-weight:800;letter-spacing:-.025em">Captura de leads<br><em style="color:var(--gold)">direto no site</em></h2>
+      <p style="font-size:14px;color:var(--muted);max-width:540px;margin:10px auto 0;line-height:1.75">Visitantes do site se inscrevem com nome e email. O contato vai direto para a base do sistema e pode ser adicionado a grupos de email marketing.</p>
+    </div>
+    <div class="cards col3" style="max-width:900px">
+      <div class="card">
+        <div class="card-icon">🌐</div>
+        <h4>Widget no site</h4>
+        <p>Formulário de captura integrado na home. O visitante insere nome e email com um clique.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">💾</div>
+        <h4>Base centralizada</h4>
+        <p>Todos os inscritos ficam armazenados no banco do sistema. Gerenciamento completo no admin.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">🎯</div>
+        <h4>Segmentação em grupos</h4>
+        <p>Mova inscritos para grupos específicos e use no email marketing para comunicação direcionada.</p>
+      </div>
+    </div>
+    <div style="margin-top:32px;background:var(--dark3);border:1px solid var(--border);border-radius:14px;padding:24px 32px;max-width:540px;width:100%">
+      <div style="font-size:11px;font-weight:700;color:var(--gold);letter-spacing:.1em;text-transform:uppercase;margin-bottom:14px">Preview — Widget do Site</div>
+      <div style="font-size:16px;font-weight:700;margin-bottom:6px">📬 Receba novidades da Azuos</div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:16px">Fique por dentro de torneios, promoções e novidades da arena.</div>
+      <div style="display:flex;gap:10px">
+        <div style="flex:1;background:var(--dark);border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-size:13px;color:rgba(255,255,255,.3)">seu@email.com</div>
+        <div style="background:linear-gradient(90deg,var(--gold),var(--gold-light));color:#000;font-weight:800;font-size:13px;padding:10px 20px;border-radius:8px;letter-spacing:.03em;cursor:pointer;white-space:nowrap">Inscrever</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       11. PAINEL ADMIN
+  ══════════════════════════════════════════ -->
+  <div class="slide" style="background:var(--dark)">
+    <div class="two-col wide">
+      <div class="text-block">
+        <div class="section-label">Painel Administrativo</div>
+        <div class="accent-line"></div>
+        <h2>Controle total<br><em>protegido por senha</em></h2>
+        <p>O gestor acessa um painel completo e seguro onde gerencia cada módulo do sistema sem precisar de suporte técnico.</p>
+        <ul class="feat-list">
+          <li><span class="ic">🏆</span>Torneios: categorias, grupos, chaves e resultados</li>
+          <li><span class="ic">📅</span>Agendamentos: reservas, planos mensais e clientes</li>
+          <li><span class="ic">🎟</span>Cupons de desconto com controle de usos</li>
+          <li><span class="ic">✉</span>Email marketing e grupos de contatos</li>
+          <li><span class="ic">📸</span>Galeria de fotos — upload e organização</li>
+          <li><span class="ic">🎨</span>Cores, logo, CNPJ e identidade visual</li>
+          <li><span class="ic">⚙</span>Preços, horários, quadras e integrações</li>
+        </ul>
+      </div>
+      <div class="mockup">
+        <div class="mockup-bar">
+          <span class="r"></span><span class="y"></span><span class="g"></span>
+          <div class="mockup-url">azuos-arena-manager.replit.app/admin</div>
+        </div>
+        <img src="/screenshots/admin.jpg" alt="Admin">
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       12. GALERIA + INSTAGRAM
+  ══════════════════════════════════════════ -->
+  <div class="slide" style="background:var(--dark2)">
+    <div style="text-align:center;margin-bottom:44px">
+      <div class="section-label" style="justify-content:center">Conteúdo Visual</div>
+      <div class="accent-line" style="margin:0 auto 16px"></div>
+      <h2 style="font-size:clamp(26px,2.8vw,44px);font-weight:800;letter-spacing:-.025em">Galeria de fotos e<br><em style="color:var(--gold)">presença no Instagram</em></h2>
+    </div>
+    <div class="two-col" style="max-width:1000px">
+      <div class="card" style="padding:32px">
+        <div style="font-size:36px;margin-bottom:16px">📸</div>
+        <h4 style="font-size:18px;margin-bottom:10px">Galeria no Site</h4>
+        <p style="margin-bottom:16px">Upload de fotos diretamente no painel admin. As imagens aparecem na galeria pública do site em grid responsivo com lightbox.</p>
+        <ul class="feat-list" style="margin-top:0">
+          <li><span class="ic">⬆</span>Upload pelo admin sem FTP ou hospedagem extra</li>
+          <li><span class="ic">🗑</span>Exclusão e reordenação de fotos</li>
+          <li><span class="ic">🖼</span>Lightbox para visualização ampliada</li>
+        </ul>
+      </div>
+      <div class="card" style="padding:32px">
+        <div style="font-size:36px;margin-bottom:16px">📱</div>
+        <h4 style="font-size:18px;margin-bottom:10px" id="instagram-feature-title">@empresa no Instagram</h4>
+        <p style="margin-bottom:16px">Link direto para o perfil do Instagram integrado na home do site. Descritivo personalizado configurável pelo admin.</p>
+        <ul class="feat-list" style="margin-top:0">
+          <li><span class="ic">🔗</span>Botão de acesso ao Instagram na home</li>
+          <li><span class="ic">✏</span>Texto e handle configuráveis no admin</li>
+          <li><span class="ic">📣</span>Divulgação orgânica de conteúdo</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       13. PAGAMENTOS — MERCADO PAGO
+  ══════════════════════════════════════════ -->
+  <div class="slide" style="background:radial-gradient(ellipse 60% 50% at 50% 50%,rgba(201,162,39,.07) 0%,transparent 70%),var(--dark)">
+    <div style="text-align:center;margin-bottom:44px">
+      <div class="section-label" style="justify-content:center">Pagamentos</div>
+      <div class="accent-line" style="margin:0 auto 16px"></div>
+      <h2 style="font-size:clamp(26px,2.8vw,44px);font-weight:800;letter-spacing:-.025em">Receita automatizada com<br><em style="color:var(--gold)">Mercado Pago integrado</em></h2>
+    </div>
+    <div class="stats">
+      <div class="stat">
+        <div class="num">PIX</div>
+        <div class="lbl">Confirmação instantânea<br>sem taxa de espera</div>
+      </div>
+      <div class="stat">
+        <div class="num">💳</div>
+        <div class="lbl">Cartão de crédito<br>com parcelamento</div>
+      </div>
+      <div class="stat">
+        <div class="num">🔔</div>
+        <div class="lbl">Webhook automático<br>confirmação em segundos</div>
+      </div>
+    </div>
+    <div style="margin-top:28px;display:grid;grid-template-columns:repeat(4,auto);gap:12px;justify-content:center">
+      <div style="padding:14px 20px;border:1px solid var(--border);border-radius:10px;font-size:13px;text-align:center;background:var(--card-bg)">
+        <div style="font-weight:700;margin-bottom:3px">Quadras</div>
+        <div style="font-size:11px;color:var(--muted)">Avulso e Mensal</div>
+      </div>
+      <div style="padding:14px 20px;border:1px solid var(--border);border-radius:10px;font-size:13px;text-align:center;background:var(--card-bg)">
+        <div style="font-weight:700;margin-bottom:3px">Beach Tennis</div>
+        <div style="font-size:11px;color:var(--muted)">Aulas e Mensalidade</div>
+      </div>
+      <div style="padding:14px 20px;border:1px solid var(--border);border-radius:10px;font-size:13px;text-align:center;background:var(--card-bg)">
+        <div style="font-weight:700;margin-bottom:3px">Copa Azuos</div>
+        <div style="font-size:11px;color:var(--muted)">Inscrição + Cupom</div>
+      </div>
+      <div style="padding:14px 20px;border:1px solid var(--border);border-radius:10px;font-size:13px;text-align:center;background:var(--card-bg)">
+        <div style="font-weight:700;margin-bottom:3px">Chave PIX</div>
+        <div style="font-size:11px;color:var(--muted)" id="pix-key-val">azuosesporte@chavepix.com.br</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       14. TODOS OS MÓDULOS
+  ══════════════════════════════════════════ -->
+  <div class="slide" style="background:var(--dark2)">
+    <div style="text-align:center;margin-bottom:36px">
+      <div class="section-label" style="justify-content:center">Visão Geral</div>
+      <div class="accent-line" style="margin:0 auto 16px"></div>
+      <h2 style="font-size:clamp(24px,2.4vw,38px);font-weight:800;letter-spacing:-.025em">Tudo que a Azuos precisa, <em style="color:var(--gold)">em um só sistema</em></h2>
+    </div>
+    <div class="cards col4" style="gap:12px">
+      <div class="card" style="padding:20px">
+        <div class="card-icon" style="font-size:22px">🏆</div>
+        <h4 style="font-size:13px">Copa Azuos</h4>
+        <p style="font-size:12px">Torneios completos com grupos, eliminatórias e ranking</p>
+      </div>
+      <div class="card" style="padding:20px">
+        <div class="card-icon" style="font-size:22px">📅</div>
+        <h4 style="font-size:13px">Agendamento</h4>
+        <p style="font-size:12px">Reservas online com PIX e controle de disponibilidade</p>
+      </div>
+      <div class="card" style="padding:20px">
+        <div class="card-icon" style="font-size:22px">🎾</div>
+        <h4 style="font-size:13px">Beach Tennis</h4>
+        <p style="font-size:12px">Aulas com preços progressivos e pagamento integrado</p>
+      </div>
+      <div class="card" style="padding:20px">
+        <div class="card-icon" style="font-size:22px">📆</div>
+        <h4 style="font-size:13px">Plano Mensal</h4>
+        <p style="font-size:12px">Horário fixo semanal com cobrança mensal recorrente</p>
+      </div>
+      <div class="card" style="padding:20px">
+        <div class="card-icon" style="font-size:22px">🎟</div>
+        <h4 style="font-size:13px">Cupons</h4>
+        <p style="font-size:12px">Descontos em % ou R$ com limite de usos e validade</p>
+      </div>
+      <div class="card" style="padding:20px">
+        <div class="card-icon" style="font-size:22px">✉</div>
+        <h4 style="font-size:13px">Email Marketing</h4>
+        <p style="font-size:12px">Campanhas segmentadas por grupos com SMTP próprio</p>
+      </div>
+      <div class="card" style="padding:20px">
+        <div class="card-icon" style="font-size:22px">📬</div>
+        <h4 style="font-size:13px">Newsletter</h4>
+        <p style="font-size:12px">Captura de leads no site com gestão de contatos</p>
+      </div>
+      <div class="card" style="padding:20px">
+        <div class="card-icon" style="font-size:22px">👥</div>
+        <h4 style="font-size:13px">Clientes</h4>
+        <p style="font-size:12px">CRM com histórico, planos e alertas de vencimento</p>
+      </div>
+      <div class="card" style="padding:20px">
+        <div class="card-icon" style="font-size:22px">📸</div>
+        <h4 style="font-size:13px">Galeria</h4>
+        <p style="font-size:12px">Upload de fotos pelo admin com lightbox no site</p>
+      </div>
+      <div class="card" style="padding:20px">
+        <div class="card-icon" style="font-size:22px">💰</div>
+        <h4 style="font-size:13px">Mercado Pago</h4>
+        <p style="font-size:12px">PIX e cartão com webhook automático de confirmação</p>
+      </div>
+      <div class="card" style="padding:20px">
+        <div class="card-icon" style="font-size:22px">🤝</div>
+        <h4 style="font-size:13px">Patrocinadores</h4>
+        <p style="font-size:12px">Logos exibidos na página da Copa Azuos</p>
+      </div>
+      <div class="card" style="padding:20px">
+        <div class="card-icon" style="font-size:22px">🎨</div>
+        <h4 style="font-size:13px">Personalização</h4>
+        <p style="font-size:12px">Cores, logo, CNPJ e textos configuráveis pelo admin</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       15. CONCLUSÃO
+  ══════════════════════════════════════════ -->
+  <div class="slide slide-conclusion">
+    <div class="cover-logo"><img src="/logo-azuos.png" alt="Azuos Esportes"></div>
+    <div class="big-headline">Pronto para usar.<br><em>Escalável para crescer.</em></div>
+    <p style="font-size:16px;color:var(--muted);margin-top:22px;text-align:center;max-width:540px;line-height:1.8">O sistema está no ar, testado e funcionando. Cada detalhe foi pensado para dar autonomia ao gestor e a melhor experiência ao atleta.</p>
+    <div class="info-strip">
+      <div class="info-item">🏢 <strong id="footer-name">Azuos Esportes</strong></div>
+      <div class="info-item" id="footer-cnpj-wrap">📋 CNPJ <strong id="footer-cnpj">12.484.460/0001-11</strong></div>
+      <div class="info-item" id="footer-address-wrap">📍 <strong id="footer-address">Novo Hamburgo – RS</strong></div>
+      <div class="info-item" id="footer-instagram-wrap">📱 <strong id="footer-instagram">@empresa</strong></div>
+    </div>
+    <div style="margin-top:36px">
+      <div style="padding:18px 28px;border:1px solid var(--border);border-radius:12px;color:rgba(255,255,255,.5);font-size:13px;font-weight:500;line-height:1.5;text-align:center">
+        React · Node.js · PostgreSQL<br><span style="color:var(--gold);font-weight:700">Mercado Pago · Neon · SMTP</span>
+      </div>
+    </div>
+
+    <!-- Botão discreto de atualização de screenshots -->
+    <div id="capture-wrap" style="position:fixed;bottom:28px;right:32px;z-index:199">
+      <button id="capture-btn"
+        title="Atualizar imagens da apresentação"
+        style="
+          background:rgba(255,255,255,.06);
+          border:1px solid rgba(255,255,255,.12);
+          color:rgba(255,255,255,.35);
+          border-radius:8px;
+          padding:5px 10px;
+          font-size:10px;
+          cursor:pointer;
+          display:flex;
+          align-items:center;
+          gap:5px;
+          transition:all .2s;
+          letter-spacing:.03em;
+        "
+        onmouseover="this.style.color='rgba(255,255,255,.7)';this.style.borderColor='rgba(255,255,255,.3)'"
+        onmouseout="this.style.color='rgba(255,255,255,.35)';this.style.borderColor='rgba(255,255,255,.12)'"
+      >
+        <span id="capture-icon">⟳</span>
+        <span id="capture-label">atualizar imagens</span>
+      </button>
+      <div id="capture-status" style="font-size:10px;color:rgba(255,255,255,.4);text-align:right;margin-top:4px;display:none"></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Nav -->
+<div id="nav">
+  <button onclick="go(-1)" title="Anterior">‹</button>
+  <div id="dots"></div>
+  <button onclick="go(1)" title="Próximo">›</button>
+</div>
+
+<script>
+  const slides = [...document.querySelectorAll('.slide')];
+  const n = slides.length;
+  document.getElementById('tot').textContent = n;
+  let cur = 0;
+
+  const dotsEl = document.getElementById('dots');
+  slides.forEach((_,i)=>{
+    const d = document.createElement('div');
+    d.className='dot'+(i===0?' active':'');
+    d.onclick=()=>goTo(i);
+    dotsEl.appendChild(d);
+  });
+
+  function goTo(idx){
+    slides[cur].classList.remove('active');
+    dotsEl.children[cur].classList.remove('active');
+    cur = (idx+n)%n;
+    slides[cur].classList.add('active');
+    dotsEl.children[cur].classList.add('active');
+    document.getElementById('cur').textContent = cur+1;
+    document.getElementById('progress').style.width = ((cur+1)/n*100)+'%';
+  }
+  function go(dir){ goTo(cur+dir); }
+
+  document.addEventListener('keydown',e=>{
+    if(e.key==='ArrowRight'||e.key==='ArrowDown'||e.key===' '){e.preventDefault();go(1);}
+    if(e.key==='ArrowLeft'||e.key==='ArrowUp'){e.preventDefault();go(-1);}
+  });
+
+  let tx=0,ty=0;
+  document.addEventListener('touchstart',e=>{tx=e.touches[0].clientX;ty=e.touches[0].clientY},{passive:true});
+  document.addEventListener('touchend',e=>{
+    const dx=tx-e.changedTouches[0].clientX;
+    const dy=ty-e.changedTouches[0].clientY;
+    if(Math.abs(dx)>Math.abs(dy)&&Math.abs(dx)>40) go(dx>0?1:-1);
+  },{passive:true});
+
+  goTo(0);
+
+  // ── Helpers ─────────────────────────────────────────────────────────────
+  function fmtCnpj(raw) {
+    const d = raw.replace(/\D/g, '');
+    return d.length === 14
+      ? d.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5')
+      : raw;
+  }
+
+  // ── Busca simultânea: perfil + PIX + SMTP ────────────────────────────────
+  Promise.all([
+    fetch('/api/profile').then(r => r.json()).catch(() => ({})),
+    fetch('/api/settings/pix-key').then(r => r.json()).catch(() => ({})),
+    fetch('/api/settings/smtp-from').then(r => r.json()).catch(() => ({})),
+  ]).then(([p, pix, smtp]) => {
+
+    // ── Logo do tenant ────────────────────────────────────────────────────
+    if (p.logo_url) {
+      document.querySelectorAll('img[src="/logo-azuos.png"]').forEach(img => {
+        img.setAttribute('src', p.logo_url);
+        img.setAttribute('alt', p.company_name || 'Logo');
+      });
+    }
+
+    // ── Caminhos de screenshot por tenant ────────────────────────────────
+    const tenantId = p.tenant_id ?? 1;
+    document.querySelectorAll('img[src^="/screenshots/"]').forEach(img => {
+      const src = img.getAttribute('src');
+      if (!src) return;
+      const newSrc = src.replace('/screenshots/', '/screenshots/' + tenantId + '/');
+      img.setAttribute('src', newSrc);
+      // Fallback: se não existir screenshot do tenant, usa o do tenant 1
+      if (tenantId !== 1) {
+        img.addEventListener('error', function onErr() {
+          img.removeEventListener('error', onErr);
+          const cur = img.getAttribute('src') || '';
+          img.setAttribute('src', cur.replace('/screenshots/' + tenantId + '/', '/screenshots/1/'));
+        });
+      }
+    });
+
+    // ── Cores do perfil do tenant ─────────────────────────────────────────
+    (function applyTheme() {
+      const primary   = (p.theme_primary   || '#c9a227').trim();
+      const bg        = (p.theme_background || '#0a0a0a').trim();
+
+      // Parse hex to RGB components
+      function hexToRgb(hex) {
+        const h = hex.replace('#','');
+        const r = parseInt(h.slice(0,2),16);
+        const g = parseInt(h.slice(2,4),16);
+        const b = parseInt(h.slice(4,6),16);
+        return [r,g,b];
+      }
+      // Lighten/darken by a factor (positive = lighter, negative = darker)
+      function adjust(hex, factor) {
+        const [r,g,b] = hexToRgb(hex);
+        const clamp = v => Math.min(255, Math.max(0, Math.round(v)));
+        const nr = clamp(r + 255 * factor);
+        const ng = clamp(g + 255 * factor);
+        const nb = clamp(b + 255 * factor);
+        return '#' + [nr,ng,nb].map(v => v.toString(16).padStart(2,'0')).join('');
+      }
+      function rgba(hex, a) {
+        const [r,g,b] = hexToRgb(hex);
+        return 'rgba(' + r + ',' + g + ',' + b + ',' + a + ')';
+      }
+
+      const root = document.documentElement;
+      root.style.setProperty('--gold',       primary);
+      root.style.setProperty('--gold2',      adjust(primary, -0.07));
+      root.style.setProperty('--gold-light', adjust(primary, 0.07));
+      root.style.setProperty('--gold-glow',  rgba(primary, 0.18));
+      root.style.setProperty('--dark',       bg);
+      root.style.setProperty('--dark2',      adjust(bg, 0.04));
+      root.style.setProperty('--dark3',      adjust(bg, 0.07));
+      root.style.setProperty('--dark4',      adjust(bg, 0.12));
+
+      // Also patch the hardcoded rgba(201,162,39,...) in inline styles using the primary color
+      const [pr,pg,pb] = hexToRgb(primary);
+      const goldRgb = pr + ',' + pg + ',' + pb;
+      document.querySelectorAll('[style]').forEach(el => {
+        const s = el.getAttribute('style') || '';
+        if (s.includes('201,162,39')) {
+          el.setAttribute('style', s.replace(/201,162,39/g, goldRgb));
+        }
+      });
+    }());
+
+    const name     = p.company_name   || 'Azuos Esportes';
+    const copaName = p.copa_page_name || 'Copa Azuos';
+    const short    = name.split(' ')[0];
+
+    // domínio derivado do nome: "Azuos Esportes" → "azuosesportes.com.br"
+    const domain = name.toLowerCase().replace(/\s+/g, '') + '.com.br';
+
+    // ── Substituição global de nós de texto ─────────────────────────────
+    function walkText(node) {
+      if (node.nodeType === 3) {
+        let t = node.textContent;
+        t = t.replace(/Copa Azuos/g,     copaName);
+        t = t.replace(/Azuos Esportes/g, name);
+        t = t.replace(/\bAzuos\b/g,      short);
+        node.textContent = t;
+      } else {
+        node.childNodes.forEach(walkText);
+      }
+    }
+    walkText(document.body);
+
+    // ── Atributos alt ────────────────────────────────────────────────────
+    document.querySelectorAll('[alt]').forEach(el => {
+      el.alt = el.alt
+        .replace(/Copa Azuos/g,     copaName)
+        .replace(/Azuos Esportes/g, name)
+        .replace(/\bAzuos\b/g,      short);
+    });
+
+    // ── Título da aba ────────────────────────────────────────────────────
+    document.title = document.title
+      .replace(/Azuos Esportes/g, name)
+      .replace(/\bAzuos\b/g,      short);
+
+    // ── Bloco CNPJ da capa ───────────────────────────────────────────────
+    const cnpjBlock = document.getElementById('cnpj-block');
+    if (cnpjBlock) {
+      const parts = [name];
+      if (p.company_cnpj) parts.push('CNPJ ' + fmtCnpj(p.company_cnpj));
+      if (p.company_address) parts.push(p.company_address);
+      cnpjBlock.textContent = parts.join(' · ');
+    }
+
+    // ── URLs das mockup-bars ─────────────────────────────────────────────
+    document.querySelectorAll('.mockup-url').forEach(el => {
+      el.textContent = el.textContent
+        .replace('azuos-arena-manager.replit.app/copa-azuos', domain + '/copa')
+        .replace('azuos-arena-manager.replit.app/agendamento', domain + '/agendamento')
+        .replace('azuos-arena-manager.replit.app/beach-tennis', domain + '/beach-tennis')
+        .replace('azuos-arena-manager.replit.app/admin', domain + '/admin')
+        .replace('azuos-arena-manager.replit.app', domain);
+    });
+
+    // ── Instagram (feature card) ─────────────────────────────────────────
+    const igTitle = document.getElementById('instagram-feature-title');
+    if (igTitle && p.instagram_handle) {
+      const handle = p.instagram_handle.startsWith('@') ? p.instagram_handle : '@' + p.instagram_handle;
+      igTitle.textContent = handle + ' no Instagram';
+    }
+
+    // ── PIX key ──────────────────────────────────────────────────────────
+    const pixEl = document.getElementById('pix-key-val');
+    if (pixEl && pix.pix_key) pixEl.textContent = pix.pix_key;
+
+    // ── Remetente de email ───────────────────────────────────────────────
+    const remEl = document.getElementById('remetente-val');
+    if (remEl) {
+      const fromName  = smtp.smtp_from_name  || name;
+      const fromEmail = smtp.smtp_from_email || '';
+      remEl.textContent = fromEmail
+        ? fromName + ' <' + fromEmail + '>'
+        : fromName;
+    }
+
+    // ── Rodapé final ─────────────────────────────────────────────────────
+    const cnpjWrap = document.getElementById('footer-cnpj-wrap');
+    if (p.company_cnpj) {
+      document.getElementById('footer-cnpj').textContent = fmtCnpj(p.company_cnpj);
+    } else {
+      cnpjWrap.style.display = 'none';
+    }
+
+    const addrWrap = document.getElementById('footer-address-wrap');
+    if (p.company_address) {
+      document.getElementById('footer-address').textContent = p.company_address;
+    } else {
+      addrWrap.style.display = 'none';
+    }
+
+    const igWrap = document.getElementById('footer-instagram-wrap');
+    if (p.instagram_handle) {
+      const handle = p.instagram_handle.startsWith('@') ? p.instagram_handle : '@' + p.instagram_handle;
+      document.getElementById('footer-instagram').textContent = handle;
+    } else {
+      igWrap.style.display = 'none';
+    }
+  });
+
+  // ── Botão de captura de screenshots ─────────────────────────────────────
+  (function () {
+    const btn   = document.getElementById('capture-btn');
+    const icon  = document.getElementById('capture-icon');
+    const label = document.getElementById('capture-label');
+    const status = document.getElementById('capture-status');
+    if (!btn) return;
+
+    async function getToken() {
+      const token = localStorage.getItem('adminToken') || localStorage.getItem('authToken');
+      if (token) return token;
+
+      const email = prompt('Email do admin (deixe em branco se for super admin):');
+      if (email === null) return null;
+      const pw = prompt('Senha:');
+      if (!pw) return null;
+
+      try {
+        if (email.trim()) {
+          const r = await fetch('/api/auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: email.trim(), password: pw }),
+          });
+          const d = await r.json();
+          if (d.token) { localStorage.setItem('adminToken', d.token); return d.token; }
+        } else {
+          const r = await fetch('/api/admin/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ password: pw }),
+          });
+          const d = await r.json();
+          if (d.token) { localStorage.setItem('adminToken', d.token); return d.token; }
+        }
+      } catch {}
+      return null;
+    }
+
+    btn.addEventListener('click', async () => {
+      btn.disabled = true;
+      icon.textContent = '⏳';
+      label.textContent = 'capturando…';
+      status.style.display = 'none';
+
+      const spin = setInterval(() => {
+        icon.textContent = icon.textContent === '⏳' ? '⌛' : '⏳';
+      }, 600);
+
+      try {
+        const token = await getToken();
+        if (!token) {
+          clearInterval(spin);
+          icon.textContent = '✗';
+          label.textContent = 'sem autenticação';
+          btn.disabled = false;
+          return;
+        }
+
+        const r = await fetch('/api/screenshots/capture', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-admin-key': token },
+          body: JSON.stringify({ baseUrl: window.location.origin }),
+        });
+
+        const d = await r.json();
+        clearInterval(spin);
+
+        if (d.success) {
+          const ok  = (d.results || []).filter(x => x.status === 'ok').length;
+          const err = (d.results || []).filter(x => x.status === 'error').length;
+          icon.textContent = err === 0 ? '✓' : '⚠';
+          label.textContent = err === 0 ? 'imagens atualizadas' : `${ok} ok, ${err} com erro`;
+          status.style.display = 'block';
+          status.style.color = err === 0 ? 'rgba(100,220,120,.6)' : 'rgba(255,180,50,.7)';
+          status.textContent = err === 0
+            ? 'Recarregue a apresentação para ver as novas imagens.'
+            : (d.results || []).filter(x => x.status === 'error').map(x => x.page).join(', ');
+        } else {
+          icon.textContent = '✗';
+          label.textContent = 'erro';
+          status.style.display = 'block';
+          status.style.color = 'rgba(255,90,90,.7)';
+          status.textContent = d.error || 'Falha desconhecida';
+        }
+      } catch (e) {
+        clearInterval(spin);
+        icon.textContent = '✗';
+        label.textContent = 'erro de rede';
+        status.style.display = 'block';
+        status.textContent = String(e);
+      } finally {
+        setTimeout(() => { btn.disabled = false; }, 3000);
+      }
+    });
+  }());
+</script>
+</body>
+</html>

@@ -1,0 +1,1643 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: Azuos Esportes API specification
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: bookings
+    description: Court and class bookings
+  - name: tournaments
+    description: Copa Azuos tournaments
+  - name: gallery
+    description: Photo gallery
+  - name: sponsors
+    description: Tournament sponsors
+  - name: admin
+    description: Admin operations
+
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  # ── AVAILABILITY ──────────────────────────────────────────────
+  /bookings/availability:
+    get:
+      operationId: getAvailability
+      tags: [bookings]
+      summary: Get available time slots for a date and type
+      parameters:
+        - name: date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: type
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [futvolei, beach_tennis]
+      responses:
+        "200":
+          description: Available slots
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AvailabilityResponse"
+
+  # ── COURT BOOKINGS ─────────────────────────────────────────────
+  /bookings/courts:
+    post:
+      operationId: createCourtBooking
+      tags: [bookings]
+      summary: Create a court booking and initiate Mercado Pago payment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCourtBookingRequest"
+      responses:
+        "201":
+          description: Booking created, payment URL returned
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BookingPaymentResponse"
+    get:
+      operationId: getCourtBookings
+      tags: [bookings]
+      summary: Get all court bookings (admin)
+      security:
+        - adminKey: []
+      responses:
+        "200":
+          description: List of court bookings
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CourtBooking"
+
+  /bookings/courts/{id}:
+    get:
+      operationId: getCourtBooking
+      tags: [bookings]
+      summary: Get a court booking by ID (admin)
+      security:
+        - adminKey: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Court booking
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CourtBooking"
+        "404":
+          description: Not found
+
+  # ── BEACH TENNIS CLASS BOOKINGS ────────────────────────────────
+  /bookings/classes:
+    post:
+      operationId: createClassBooking
+      tags: [bookings]
+      summary: Create a beach tennis class booking and initiate payment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateClassBookingRequest"
+      responses:
+        "201":
+          description: Booking created, payment URL returned
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BookingPaymentResponse"
+    get:
+      operationId: getClassBookings
+      tags: [bookings]
+      summary: Get all class bookings (admin)
+      security:
+        - adminKey: []
+      responses:
+        "200":
+          description: List of class bookings
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ClassBooking"
+
+  /bookings/classes/{id}:
+    get:
+      operationId: getClassBooking
+      tags: [bookings]
+      summary: Get a class booking by ID (admin)
+      security:
+        - adminKey: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Class booking
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClassBooking"
+        "404":
+          description: Not found
+
+  # ── MERCADO PAGO WEBHOOK ───────────────────────────────────────
+  /bookings/webhook:
+    post:
+      operationId: mercadoPagoWebhook
+      tags: [bookings]
+      summary: Mercado Pago payment notification webhook
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        "200":
+          description: Webhook received
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  # ── TOURNAMENTS ────────────────────────────────────────────────
+  /tournaments:
+    get:
+      operationId: getTournaments
+      tags: [tournaments]
+      summary: List all tournaments
+      responses:
+        "200":
+          description: List of tournaments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Tournament"
+    post:
+      operationId: createTournament
+      tags: [tournaments]
+      summary: Create a tournament (admin)
+      security:
+        - adminKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateTournamentRequest"
+      responses:
+        "201":
+          description: Tournament created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Tournament"
+
+  /tournaments/{id}:
+    get:
+      operationId: getTournament
+      tags: [tournaments]
+      summary: Get a tournament with full details
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Tournament details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TournamentDetail"
+        "404":
+          description: Not found
+    put:
+      operationId: updateTournament
+      tags: [tournaments]
+      summary: Update a tournament (admin)
+      security:
+        - adminKey: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateTournamentRequest"
+      responses:
+        "200":
+          description: Tournament updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Tournament"
+    delete:
+      operationId: deleteTournament
+      tags: [tournaments]
+      summary: Delete a tournament (admin)
+      security:
+        - adminKey: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Tournament deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "404":
+          description: Not found
+
+  # ── CATEGORIES ─────────────────────────────────────────────────
+  /tournaments/{id}/categories:
+    get:
+      operationId: getTournamentCategories
+      tags: [tournaments]
+      summary: Get categories for a tournament
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of categories
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Category"
+    post:
+      operationId: createCategory
+      tags: [tournaments]
+      summary: Create a category for a tournament (admin)
+      security:
+        - adminKey: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCategoryRequest"
+      responses:
+        "201":
+          description: Category created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Category"
+
+  /tournaments/{id}/categories/{categoryId}:
+    delete:
+      operationId: deleteCategory
+      tags: [tournaments]
+      summary: Delete a category (admin)
+      security:
+        - adminKey: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: categoryId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Category deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  # ── PAIRS ──────────────────────────────────────────────────────
+  /tournaments/{id}/categories/{categoryId}/pairs:
+    get:
+      operationId: getPairs
+      tags: [tournaments]
+      summary: Get pairs for a category
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: categoryId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of pairs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Pair"
+    post:
+      operationId: createPair
+      tags: [tournaments]
+      summary: Register a pair in a category (admin)
+      security:
+        - adminKey: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: categoryId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePairRequest"
+      responses:
+        "201":
+          description: Pair registered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Pair"
+
+  /tournaments/{id}/categories/{categoryId}/pairs/{pairId}:
+    delete:
+      operationId: deletePair
+      tags: [tournaments]
+      summary: Remove a pair (admin)
+      security:
+        - adminKey: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: categoryId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: pairId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Pair removed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  # ── GENERATE GROUPS ─────────────────────────────────────────────
+  /tournaments/{id}/categories/{categoryId}/generate-groups:
+    post:
+      operationId: generateGroups
+      tags: [tournaments]
+      summary: Generate groups and group stage matches (admin)
+      security:
+        - adminKey: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: categoryId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Groups and matches generated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GenerateGroupsResponse"
+
+  # ── GENERATE BRACKET ───────────────────────────────────────────
+  /tournaments/{id}/categories/{categoryId}/generate-bracket:
+    post:
+      operationId: generateBracket
+      tags: [tournaments]
+      summary: Generate knockout bracket (admin)
+      security:
+        - adminKey: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: categoryId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Bracket generated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GenerateBracketResponse"
+
+  # ── MATCHES ─────────────────────────────────────────────────────
+  /tournaments/{id}/categories/{categoryId}/matches:
+    get:
+      operationId: getMatches
+      tags: [tournaments]
+      summary: Get all matches for a category
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: categoryId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of matches
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Match"
+
+  /tournaments/{id}/categories/{categoryId}/matches/{matchId}/result:
+    put:
+      operationId: updateMatchResult
+      tags: [tournaments]
+      summary: Update match result (admin)
+      security:
+        - adminKey: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: categoryId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: matchId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateMatchResultRequest"
+      responses:
+        "200":
+          description: Result updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Match"
+
+  # ── STANDINGS ──────────────────────────────────────────────────
+  /tournaments/{id}/categories/{categoryId}/standings:
+    get:
+      operationId: getStandings
+      tags: [tournaments]
+      summary: Get group standings for a category
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: categoryId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Group standings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StandingsResponse"
+
+  # ── CHAMPIONS ──────────────────────────────────────────────────
+  /tournaments/{id}/champions:
+    get:
+      operationId: getTournamentChampions
+      tags: [tournaments]
+      summary: Get champions, runners-up and third place for all categories
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Champions by category
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ChampionEntry"
+
+  /champions:
+    get:
+      operationId: getAllChampions
+      tags: [tournaments]
+      summary: Get all champions across all tournaments
+      responses:
+        "200":
+          description: All champions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ChampionEntry"
+
+  # ── PAIR PHOTO ─────────────────────────────────────────────────
+  /pairs/{pairId}/photo:
+    put:
+      operationId: updatePairPhoto
+      tags: [tournaments]
+      summary: Upload a photo for a pair (admin)
+      security:
+        - adminKey: []
+      parameters:
+        - name: pairId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdatePairPhotoRequest"
+      responses:
+        "200":
+          description: Photo updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Pair"
+
+  # ── SPONSORS ───────────────────────────────────────────────────
+  /tournaments/{id}/sponsors:
+    get:
+      operationId: getSponsors
+      tags: [sponsors]
+      summary: Get sponsors for a tournament
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of sponsors
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Sponsor"
+    post:
+      operationId: createSponsor
+      tags: [sponsors]
+      summary: Add a sponsor to a tournament (admin)
+      security:
+        - adminKey: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateSponsorRequest"
+      responses:
+        "201":
+          description: Sponsor created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Sponsor"
+
+  /sponsors/upload:
+    post:
+      operationId: uploadSponsorLogo
+      tags: [sponsors]
+      summary: Upload a sponsor logo file (admin)
+      security:
+        - adminKey: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+              required: [file]
+      responses:
+        "200":
+          description: Logo uploaded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UploadResponse"
+
+  /sponsors/{sponsorId}:
+    get:
+      operationId: getSponsor
+      tags: [sponsors]
+      summary: Get a single sponsor (admin)
+      security:
+        - adminKey: []
+      parameters:
+        - name: sponsorId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Sponsor
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Sponsor"
+    put:
+      operationId: updateSponsor
+      tags: [sponsors]
+      summary: Update a sponsor (admin)
+      security:
+        - adminKey: []
+      parameters:
+        - name: sponsorId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateSponsorRequest"
+      responses:
+        "200":
+          description: Sponsor updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Sponsor"
+    delete:
+      operationId: deleteSponsor
+      tags: [sponsors]
+      summary: Remove a sponsor (admin)
+      security:
+        - adminKey: []
+      parameters:
+        - name: sponsorId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Sponsor removed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  # ── GALLERY ────────────────────────────────────────────────────
+  /gallery/upload:
+    post:
+      operationId: uploadGalleryPhoto
+      tags: [gallery]
+      summary: Upload a gallery photo file (admin)
+      security:
+        - adminKey: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+              required: [file]
+      responses:
+        "200":
+          description: Photo uploaded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UploadResponse"
+
+  /gallery:
+    get:
+      operationId: getGallery
+      tags: [gallery]
+      summary: Get all gallery photos
+      responses:
+        "200":
+          description: Gallery photos
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/GalleryPhoto"
+    post:
+      operationId: addGalleryPhoto
+      tags: [gallery]
+      summary: Add a photo to the gallery (admin)
+      security:
+        - adminKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateGalleryPhotoRequest"
+      responses:
+        "201":
+          description: Photo added
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GalleryPhoto"
+
+  /gallery/{photoId}:
+    delete:
+      operationId: deleteGalleryPhoto
+      tags: [gallery]
+      summary: Delete a gallery photo (admin)
+      security:
+        - adminKey: []
+      parameters:
+        - name: photoId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Photo deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  # ── ADMIN AUTH ─────────────────────────────────────────────────
+  /admin/login:
+    post:
+      operationId: adminLogin
+      tags: [admin]
+      summary: Admin login with password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminLoginRequest"
+      responses:
+        "200":
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminLoginResponse"
+        "401":
+          description: Invalid password
+
+components:
+  securitySchemes:
+    adminKey:
+      type: apiKey
+      in: header
+      name: x-admin-key
+
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+      required:
+        - success
+
+    # ── AVAILABILITY ──────────────────────────────────────────────
+    TimeSlot:
+      type: object
+      properties:
+        time:
+          type: string
+          description: "HH:MM format"
+        available:
+          type: boolean
+        price:
+          type: number
+      required:
+        - time
+        - available
+        - price
+
+    AvailabilityResponse:
+      type: object
+      properties:
+        date:
+          type: string
+        type:
+          type: string
+        slots:
+          type: array
+          items:
+            $ref: "#/components/schemas/TimeSlot"
+      required:
+        - date
+        - type
+        - slots
+
+    # ── BOOKINGS ──────────────────────────────────────────────────
+    CreateCourtBookingRequest:
+      type: object
+      properties:
+        date:
+          type: string
+          format: date
+        time:
+          type: string
+        customerName:
+          type: string
+        customerEmail:
+          type: string
+        customerPhone:
+          type: string
+        durationHours:
+          type: integer
+          default: 1
+      required:
+        - date
+        - time
+        - customerName
+        - customerEmail
+        - customerPhone
+
+    CreateClassBookingRequest:
+      type: object
+      properties:
+        date:
+          type: string
+          format: date
+        time:
+          type: string
+        customerName:
+          type: string
+        customerEmail:
+          type: string
+        customerPhone:
+          type: string
+        numberOfPeople:
+          type: integer
+          minimum: 1
+          maximum: 4
+      required:
+        - date
+        - time
+        - customerName
+        - customerEmail
+        - customerPhone
+        - numberOfPeople
+
+    BookingPaymentResponse:
+      type: object
+      properties:
+        bookingId:
+          type: integer
+        pixQrCode:
+          type: string
+        pixQrCodeBase64:
+          type: string
+        amount:
+          type: number
+        status:
+          type: string
+      required:
+        - bookingId
+        - amount
+        - status
+
+    CourtBooking:
+      type: object
+      properties:
+        id:
+          type: integer
+        date:
+          type: string
+        time:
+          type: string
+        customerName:
+          type: string
+        customerEmail:
+          type: string
+        customerPhone:
+          type: string
+        durationHours:
+          type: integer
+        amount:
+          type: number
+        status:
+          type: string
+          enum: [pending, confirmed, cancelled]
+        paymentId:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+      required:
+        - id
+        - date
+        - time
+        - customerName
+        - customerEmail
+        - customerPhone
+        - durationHours
+        - amount
+        - status
+        - createdAt
+
+    ClassBooking:
+      type: object
+      properties:
+        id:
+          type: integer
+        date:
+          type: string
+        time:
+          type: string
+        customerName:
+          type: string
+        customerEmail:
+          type: string
+        customerPhone:
+          type: string
+        numberOfPeople:
+          type: integer
+        amount:
+          type: number
+        status:
+          type: string
+          enum: [pending, confirmed, cancelled]
+        paymentId:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+      required:
+        - id
+        - date
+        - time
+        - customerName
+        - customerEmail
+        - customerPhone
+        - numberOfPeople
+        - amount
+        - status
+        - createdAt
+
+    # ── TOURNAMENTS ───────────────────────────────────────────────
+    CreateTournamentRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+          nullable: true
+        location:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum: [upcoming, ongoing, finished]
+          default: upcoming
+        bannerUrl:
+          type: string
+          nullable: true
+      required:
+        - name
+        - startDate
+
+    Tournament:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        startDate:
+          type: string
+        endDate:
+          type: string
+          nullable: true
+        location:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum: [upcoming, ongoing, finished]
+        bannerUrl:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+      required:
+        - id
+        - name
+        - startDate
+        - status
+        - createdAt
+
+    TournamentDetail:
+      allOf:
+        - $ref: "#/components/schemas/Tournament"
+        - type: object
+          properties:
+            categories:
+              type: array
+              items:
+                $ref: "#/components/schemas/CategoryWithPairs"
+            sponsors:
+              type: array
+              items:
+                $ref: "#/components/schemas/Sponsor"
+
+    # ── CATEGORIES ─────────────────────────────────────────────────
+    CreateCategoryRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+      required:
+        - name
+
+    Category:
+      type: object
+      properties:
+        id:
+          type: integer
+        tournamentId:
+          type: integer
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        phase:
+          type: string
+          enum: [registration, group_stage, knockout, finished]
+          default: registration
+        createdAt:
+          type: string
+      required:
+        - id
+        - tournamentId
+        - name
+        - phase
+        - createdAt
+
+    CategoryWithPairs:
+      allOf:
+        - $ref: "#/components/schemas/Category"
+        - type: object
+          properties:
+            pairs:
+              type: array
+              items:
+                $ref: "#/components/schemas/Pair"
+            matches:
+              type: array
+              items:
+                $ref: "#/components/schemas/Match"
+
+    # ── PAIRS ──────────────────────────────────────────────────────
+    CreatePairRequest:
+      type: object
+      properties:
+        player1Name:
+          type: string
+        player2Name:
+          type: string
+        photoUrl:
+          type: string
+          nullable: true
+      required:
+        - player1Name
+        - player2Name
+
+    Pair:
+      type: object
+      properties:
+        id:
+          type: integer
+        categoryId:
+          type: integer
+        player1Name:
+          type: string
+        player2Name:
+          type: string
+        photoUrl:
+          type: string
+          nullable: true
+        groupId:
+          type: integer
+          nullable: true
+        groupName:
+          type: string
+          nullable: true
+        seed:
+          type: integer
+          nullable: true
+        createdAt:
+          type: string
+      required:
+        - id
+        - categoryId
+        - player1Name
+        - player2Name
+        - createdAt
+
+    UpdatePairPhotoRequest:
+      type: object
+      properties:
+        photoUrl:
+          type: string
+      required:
+        - photoUrl
+
+    # ── GROUPS ─────────────────────────────────────────────────────
+    Group:
+      type: object
+      properties:
+        id:
+          type: integer
+        categoryId:
+          type: integer
+        name:
+          type: string
+        pairs:
+          type: array
+          items:
+            $ref: "#/components/schemas/Pair"
+      required:
+        - id
+        - categoryId
+        - name
+        - pairs
+
+    GenerateGroupsResponse:
+      type: object
+      properties:
+        groups:
+          type: array
+          items:
+            $ref: "#/components/schemas/Group"
+        matchesCreated:
+          type: integer
+      required:
+        - groups
+        - matchesCreated
+
+    GenerateBracketResponse:
+      type: object
+      properties:
+        bracketType:
+          type: string
+          enum: [quarterfinals, eighthfinals, semifinals]
+        matchesCreated:
+          type: integer
+        matches:
+          type: array
+          items:
+            $ref: "#/components/schemas/Match"
+      required:
+        - bracketType
+        - matchesCreated
+        - matches
+
+    # ── MATCHES ────────────────────────────────────────────────────
+    UpdateMatchResultRequest:
+      type: object
+      properties:
+        pair1Sets:
+          type: integer
+          minimum: 0
+        pair2Sets:
+          type: integer
+          minimum: 0
+        pair1Games:
+          type: integer
+          minimum: 0
+          nullable: true
+        pair2Games:
+          type: integer
+          minimum: 0
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+      required:
+        - pair1Sets
+        - pair2Sets
+
+    Match:
+      type: object
+      properties:
+        id:
+          type: integer
+        categoryId:
+          type: integer
+        groupId:
+          type: integer
+          nullable: true
+        phase:
+          type: string
+          enum: [group_stage, eighthfinals, quarterfinals, semifinals, final, third_place]
+        pair1Id:
+          type: integer
+          nullable: true
+        pair2Id:
+          type: integer
+          nullable: true
+        pair1Name:
+          type: string
+          nullable: true
+        pair2Name:
+          type: string
+          nullable: true
+        pair1Sets:
+          type: integer
+          nullable: true
+        pair2Sets:
+          type: integer
+          nullable: true
+        pair1Games:
+          type: integer
+          nullable: true
+        pair2Games:
+          type: integer
+          nullable: true
+        winnerId:
+          type: integer
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+        matchOrder:
+          type: integer
+        completed:
+          type: boolean
+      required:
+        - id
+        - categoryId
+        - phase
+        - matchOrder
+        - completed
+
+    # ── STANDINGS ──────────────────────────────────────────────────
+    StandingEntry:
+      type: object
+      properties:
+        pairId:
+          type: integer
+        player1Name:
+          type: string
+        player2Name:
+          type: string
+        groupName:
+          type: string
+        played:
+          type: integer
+        won:
+          type: integer
+        lost:
+          type: integer
+        setsWon:
+          type: integer
+        setsLost:
+          type: integer
+        points:
+          type: integer
+      required:
+        - pairId
+        - player1Name
+        - player2Name
+        - groupName
+        - played
+        - won
+        - lost
+        - setsWon
+        - setsLost
+        - points
+
+    StandingsResponse:
+      type: object
+      properties:
+        categoryId:
+          type: integer
+        groups:
+          type: array
+          items:
+            type: object
+            properties:
+              groupName:
+                type: string
+              standings:
+                type: array
+                items:
+                  $ref: "#/components/schemas/StandingEntry"
+            required:
+              - groupName
+              - standings
+      required:
+        - categoryId
+        - groups
+
+    # ── CHAMPIONS ──────────────────────────────────────────────────
+    ChampionEntry:
+      type: object
+      properties:
+        tournamentId:
+          type: integer
+        tournamentName:
+          type: string
+        categoryId:
+          type: integer
+        categoryName:
+          type: string
+        champion:
+          $ref: "#/components/schemas/Pair"
+          nullable: true
+        runnerUp:
+          $ref: "#/components/schemas/Pair"
+          nullable: true
+        thirdPlace:
+          $ref: "#/components/schemas/Pair"
+          nullable: true
+      required:
+        - tournamentId
+        - tournamentName
+        - categoryId
+        - categoryName
+
+    # ── SPONSORS ───────────────────────────────────────────────────
+    CreateSponsorRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        logoUrl:
+          type: string
+          nullable: true
+        websiteUrl:
+          type: string
+          nullable: true
+        position:
+          type: string
+          enum: [left, right, bottom]
+          default: left
+      required:
+        - name
+
+    Sponsor:
+      type: object
+      properties:
+        id:
+          type: integer
+        tournamentId:
+          type: integer
+        name:
+          type: string
+        logoUrl:
+          type: string
+          nullable: true
+        websiteUrl:
+          type: string
+          nullable: true
+        position:
+          type: string
+          enum: [left, right, bottom]
+        createdAt:
+          type: string
+      required:
+        - id
+        - tournamentId
+        - name
+        - position
+        - createdAt
+
+    # ── GALLERY ────────────────────────────────────────────────────
+    CreateGalleryPhotoRequest:
+      type: object
+      properties:
+        url:
+          type: string
+        caption:
+          type: string
+          nullable: true
+        category:
+          type: string
+          nullable: true
+      required:
+        - url
+
+    GalleryPhoto:
+      type: object
+      properties:
+        id:
+          type: integer
+        url:
+          type: string
+        caption:
+          type: string
+          nullable: true
+        category:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+      required:
+        - id
+        - url
+        - createdAt
+
+    UpdateSponsorRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        logoUrl:
+          type: string
+          nullable: true
+        websiteUrl:
+          type: string
+          nullable: true
+        position:
+          type: string
+          enum: [left, right, bottom]
+
+    UploadResponse:
+      type: object
+      properties:
+        url:
+          type: string
+        filename:
+          type: string
+      required:
+        - url
+        - filename
+
+    # ── ADMIN ──────────────────────────────────────────────────────
+    AdminLoginRequest:
+      type: object
+      properties:
+        password:
+          type: string
+      required:
+        - password
+
+    AdminLoginResponse:
+      type: object
+      properties:
+        token:
+          type: string
+        success:
+          type: boolean
+      required:
+        - token
+        - success

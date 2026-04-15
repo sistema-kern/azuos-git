@@ -1,0 +1,79 @@
+uploads = []
+
+[[generated]]
+id = "AePLzjgPujVktJqzkwWCi"
+uri = "file://artifacts/mockup-sandbox/public/arenix-post-1.png"
+type = "image"
+title = "Arenix Instagram Post 1 - Discover"
+
+[[generated]]
+id = "aPKQ8LV1Ci3AyMrtkwGWk"
+uri = "file://artifacts/mockup-sandbox/public/arenix-post-2.png"
+type = "image"
+title = "Arenix Instagram Post 2 - Manage"
+
+[[generated]]
+id = "EWX-G5CSzBdAg0KPuuCFq"
+uri = "file://artifacts/mockup-sandbox/public/arenix-post-3.png"
+type = "image"
+title = "Arenix Instagram Post 3 - Transform"
+
+[[generated]]
+id = "02afXNrZa3fF3N7iGhKUb"
+uri = "file://artifacts/mockup-sandbox/public/arenix-feed-1.png"
+type = "image"
+title = "Arenix Feed Post 1 - Court Management"
+
+[[generated]]
+id = "Nj6sbxDx5fag-wCayrt2G"
+uri = "file://artifacts/mockup-sandbox/public/arenix-feed-2.png"
+type = "image"
+title = "Arenix Feed Post 2 - Payment System"
+
+[[generated]]
+id = "z5DgdqBMIP0MRF0uwE3Rn"
+uri = "file://artifacts/mockup-sandbox/public/arenix-feed-3.png"
+type = "image"
+title = "Arenix Feed Post 3 - Tournament Management"
+
+[[generated]]
+id = "Z0tz5lu2SJAfwmoMGBXqV"
+uri = "file://artifacts/mockup-sandbox/public/arenix-real-post-1.png"
+type = "image"
+title = "Arenix Real Post 1 - Smart Court Management"
+
+[[generated]]
+id = "W5DsFJJQrpb6iIenlMXr0"
+uri = "file://artifacts/mockup-sandbox/public/arenix-real-post-2.png"
+type = "image"
+title = "Arenix Real Post 2 - Financial Control"
+
+[[generated]]
+id = "oJUboNCS0ZTG38hwAmGaG"
+uri = "file://artifacts/mockup-sandbox/public/arenix-real-post-3.png"
+type = "image"
+title = "Arenix Real Post 3 - Professional Tournament Management"
+
+[[outputs]]
+id = "Fjzm8RAbS6rD2_axRKIkT"
+uri = "file://artifacts/mockup-sandbox/public/post1-agendamento.jpg"
+type = "image"
+title = "Post 1 — Agendamento de Quadras"
+
+[[outputs]]
+id = "QrnHveyRVS4DhmaB5lVm2"
+uri = "file://artifacts/mockup-sandbox/public/post2-gestao.jpg"
+type = "image"
+title = "Post 2 — Gestão Completa"
+
+[[outputs]]
+id = "Tjo2rx584eNhjdA4QkfKT"
+uri = "file://artifacts/mockup-sandbox/public/post3-torneios.jpg"
+type = "image"
+title = "Post 3 — Torneios"
+
+[[outputs]]
+id = "6csM6nRDE-my6iGuu3dSL"
+uri = "file://arenix-storage-migration.tar.gz"
+type = "unspecified"
+title = "arenix-storage-migration.tar.gz — Arquivos alterados (storage local)"

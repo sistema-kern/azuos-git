@@ -1,0 +1,39 @@
+modules = ["nodejs-24", "postgresql-16"]
+
+[[artifacts]]
+id = "artifacts/api-server"
+
+[[artifacts]]
+id = "artifacts/mockup-sandbox"
+
+[deployment]
+router = "application"
+deploymentTarget = "autoscale"
+
+[deployment.postBuild]
+args = ["pnpm", "store", "prune"]
+env = { "CI" = "true" }
+
+[workflows]
+runButton = "Project"
+
+[agent]
+stack = "PNPM_WORKSPACE"
+expertMode = true
+
+[postMerge]
+path = "scripts/post-merge.sh"
+timeoutMs = 20000
+
+[nix]
+channel = "stable-25_05"
+
+[userenv]
+
+[userenv.production]
+APP_URL = "https://corepoa.com.br"
+
+[userenv.shared]
+VAPID_PUBLIC_KEY = "BExFOL59KgY-m-Xu7anSYn9PPTYnMYiRS1C8rk5q-vCn6VXnZdcnwLdNHztVvy3uc6MgKiu3MJjJxK8Q8m3tXMg"
+VAPID_PRIVATE_KEY = "qQ2FvC8PXYooGrNIAjuDGjRxcgKY33hq-TSI02CjBPI"
+VAPID_SUBJECT = "mailto:contato@arenix.com.br"
