@@ -142,7 +142,7 @@ function isCloudflareProxyIp(ip: string): boolean {
 
 // ── DNS Panel ─────────────────────────────────────────────────────────────────
 
-type DnsCheckResult = { connected: boolean; type?: string; value?: string; error?: string } | null;
+type DnsCheckResult = { connected: boolean; type?: string; value?: string; resolvedIp?: string; expectedIp?: string; error?: string } | null;
 
 function DnsPanel({ domain, dnsTarget, tenantId, authHeaders }: {
   domain: string; dnsTarget: string; tenantId: number; authHeaders: Record<string, string>;
@@ -181,7 +181,12 @@ function DnsPanel({ domain, dnsTarget, tenantId, authHeaders }: {
               <CheckCircle className="w-3.5 h-3.5" /> Domínio conectado
             </span>
           )}
-          {dnsResult && !dnsResult.connected && (
+          {dnsResult && !dnsResult.connected && dnsResult.value && dnsResult.expectedIp && (
+            <span className="flex items-center gap-1 text-xs font-medium text-red-400">
+              <AlertCircle className="w-3.5 h-3.5" /> IP errado
+            </span>
+          )}
+          {dnsResult && !dnsResult.connected && !dnsResult.value && (
             <span className="flex items-center gap-1 text-xs text-yellow-400">
               <AlertCircle className="w-3.5 h-3.5" /> Não resolvido
             </span>
@@ -194,66 +199,66 @@ function DnsPanel({ domain, dnsTarget, tenantId, authHeaders }: {
       </div>
       {dnsTarget ? (
         <div className="space-y-2.5 text-xs">
-
-          {/* Step 1 — Register on Replit */}
-          <div className="rounded border border-yellow-500/40 bg-yellow-500/5 px-3 py-2.5 space-y-1.5">
-            <p className="font-semibold text-yellow-300 flex items-center gap-1.5 text-[11px] uppercase tracking-wide">
-              <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-              Passo 1 — Registrar no Replit (obrigatório)
-            </p>
-            <div className="space-y-1 text-[12px] leading-relaxed text-yellow-200/80">
-              <p>
-                No painel do Replit, vá em <strong className="text-yellow-200">Deploy → Domains</strong> e
-                adicione <span className="font-mono text-yellow-100">{domain}</span>.
-                O Replit mostrará dois registros DNS: um <strong className="text-yellow-200">A</strong> (endereço IP)
-                e um <strong className="text-yellow-200">TXT</strong> (verificação). Copie os dois.
+          {/* VPS mode: dnsTarget is a raw IP */}
+          {/^\d{1,3}(\.\d{1,3}){3}$/.test(dnsTarget) ? (
+            <div className="rounded border border-muted/20 bg-black/10 px-3 py-2.5 space-y-2">
+              <p className="font-medium text-muted-foreground text-[11px] uppercase tracking-wide">
+                Configuração DNS — adicionar no seu provedor (Cloudflare, Registro.br, etc.)
               </p>
-            </div>
-          </div>
-
-          {/* Step 2 — DNS records */}
-          <div className="rounded border border-muted/20 bg-black/10 px-3 py-2.5 space-y-2">
-            <p className="font-medium text-muted-foreground text-[11px] uppercase tracking-wide">
-              Passo 2 — Adicionar no DNS (Cloudflare ou outro provedor)
-            </p>
-            <div className="space-y-1.5 text-[12px] leading-relaxed text-muted-foreground">
-              <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 font-mono">
-                <span className="text-blue-400 font-bold">A</span>
-                <span>Nome: <strong className="text-foreground">@</strong> → Valor: IP fornecido pelo Replit</span>
-                <span className="text-blue-400 font-bold">TXT</span>
-                <span>Nome: <strong className="text-foreground">@</strong> → Valor: <code className="text-[11px] text-yellow-300">replit-verify=…</code> fornecido pelo Replit</span>
+              <div className="space-y-1.5 text-[12px] leading-relaxed text-muted-foreground">
+                <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 font-mono">
+                  <span className="text-blue-400 font-bold">A</span>
+                  <span>Nome: <strong className="text-foreground">@</strong> → Valor: <strong className="text-foreground">{dnsTarget}</strong></span>
+                </div>
+                <p className="text-[11px] text-orange-400 flex items-start gap-1 pt-0.5">
+                  <AlertCircle className="w-3 h-3 mt-0.5 shrink-0" />
+                  Se usar Cloudflare: mantenha o proxy <strong>desativado (nuvem cinza ☁️ DNS only)</strong>.
+                </p>
+                <p className="text-[11px] text-muted-foreground/60">
+                  Se havia um CNAME, remova-o — o registro A o substitui.
+                </p>
               </div>
-              <p className="text-[11px] text-orange-400 flex items-start gap-1 pt-0.5">
-                <AlertCircle className="w-3 h-3 mt-0.5 shrink-0" />
-                Se usar Cloudflare: mantenha ambos os registros com <strong>proxy desativado (nuvem cinza ☁️ DNS only)</strong>.
-                Com proxy ativo o Replit não consegue verificar nem emitir o certificado SSL.
-              </p>
-              {/* existing CNAME if present */}
-              <p className="text-[11px] text-muted-foreground/60">
-                Se havia um CNAME para <span className="font-mono">{dnsTarget}</span>, remova-o — o registro A o substitui.
-              </p>
             </div>
-          </div>
-
-          {/* Step 3 — Link */}
-          <div className="rounded border border-green-500/25 bg-green-500/5 px-3 py-2 text-[12px] text-green-200/80">
-            <strong className="text-green-300">Passo 3 —</strong> Volte ao Replit e clique em{" "}
-            <strong className="text-green-300">Link →</strong>. O Replit verificará os registros e
-            emitirá o certificado SSL automaticamente (pode levar alguns minutos).
-          </div>
+          ) : (
+            <>
+              {/* Replit mode */}
+              <div className="rounded border border-yellow-500/40 bg-yellow-500/5 px-3 py-2.5 space-y-1.5">
+                <p className="font-semibold text-yellow-300 flex items-center gap-1.5 text-[11px] uppercase tracking-wide">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                  Passo 1 — Registrar no Replit (obrigatório)
+                </p>
+                <p className="text-[12px] leading-relaxed text-yellow-200/80">
+                  No painel do Replit, vá em <strong className="text-yellow-200">Deploy → Domains</strong> e
+                  adicione <span className="font-mono text-yellow-100">{domain}</span>.
+                </p>
+              </div>
+              <div className="rounded border border-muted/20 bg-black/10 px-3 py-2.5 space-y-2">
+                <p className="font-medium text-muted-foreground text-[11px] uppercase tracking-wide">
+                  Passo 2 — Adicionar no DNS
+                </p>
+                <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 font-mono text-[12px]">
+                  <span className="text-blue-400 font-bold">A</span>
+                  <span className="text-muted-foreground">Nome: <strong className="text-foreground">@</strong> → IP fornecido pelo Replit</span>
+                  <span className="text-blue-400 font-bold">TXT</span>
+                  <span className="text-muted-foreground">Nome: <strong className="text-foreground">@</strong> → <code className="text-[11px] text-yellow-300">replit-verify=…</code></span>
+                </div>
+              </div>
+              <div className="rounded border border-green-500/25 bg-green-500/5 px-3 py-2 text-[12px] text-green-200/80">
+                <strong className="text-green-300">Passo 3 —</strong> Volte ao Replit e clique em <strong className="text-green-300">Link →</strong>.
+              </div>
+            </>
+          )}
 
           {dnsResult?.connected && dnsResult.value && (
-            <div className="space-y-0.5">
-              <p className="text-green-400/80 text-[11px]">
-                ✓ DNS resolvido via {dnsResult.type}: <span className="font-mono">{dnsResult.value}</span>
-              </p>
-              {isCloudflareProxyIp(dnsResult.value) && (
-                <p className="text-orange-400 text-[11px] flex items-center gap-1">
-                  <AlertCircle className="w-3 h-3 shrink-0" />
-                  IP Cloudflare proxy detectado — desative o proxy (nuvem cinza) para o Replit verificar o domínio.
-                </p>
-              )}
-            </div>
+            <p className="text-green-400/80 text-[11px]">
+              ✓ DNS resolvido via {dnsResult.type}: <span className="font-mono">{dnsResult.value}</span>
+            </p>
+          )}
+          {dnsResult && !dnsResult.connected && dnsResult.value && dnsResult.expectedIp && (
+            <p className="text-red-400 text-[11px] flex items-start gap-1">
+              <AlertCircle className="w-3 h-3 mt-0.5 shrink-0" />
+              DNS aponta para <span className="font-mono mx-1">{dnsResult.value}</span> mas deveria ser <span className="font-mono mx-1">{dnsResult.expectedIp}</span> — atualize o registro A no seu provedor DNS.
+            </p>
           )}
           {dnsResult && !dnsResult.connected && dnsResult.error && (
             <p className="text-yellow-400/80 text-[11px]">{dnsResult.error}</p>
@@ -261,7 +266,7 @@ function DnsPanel({ domain, dnsTarget, tenantId, authHeaders }: {
         </div>
       ) : (
         <p className="text-xs text-muted-foreground">
-          Publique o app em produção para obter o endereço CNAME de destino.
+          Configure o APP_URL no servidor para exibir o IP de destino.
         </p>
       )}
     </div>
@@ -966,7 +971,9 @@ const EMPTY_SETTINGS: BillingSettings = {
 function resolveSuperLogoUrl(raw: string): string {
   if (!raw) return "";
   if (raw.startsWith("http")) return raw;
-  if (raw.startsWith("/objects/")) return `/api/storage${raw}`;
+  if (raw.startsWith("/objects/")) return `${BASE}api/storage${raw}`;
+  if (raw.startsWith("/tenant-")) return `${BASE}api/uploads${raw}`;
+  if (raw.startsWith("/api/")) return raw;
   return raw;
 }
 
@@ -1057,7 +1064,11 @@ function BillingSettingsPanel({ authHeaders, tenants }: { authHeaders: Record<st
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [uploadingFavicon, setUploadingFavicon] = useState(false);
 
-  const webhookUrl = `${window.location.origin}${BASE}api/super/billing/webhook`;
+  const defaultTenant = tenants.find(t => String(t.id) === String(settings.default_tenant_id));
+  const webhookBase = defaultTenant?.customDomain
+    ? `https://${defaultTenant.customDomain}`
+    : window.location.origin;
+  const webhookUrl = `${webhookBase}${BASE}api/super/billing/webhook`;
 
   useEffect(() => {
     fetch(`${BASE}api/super/settings`, { headers: authHeaders })
@@ -1433,7 +1444,7 @@ function BillingSettingsPanel({ authHeaders, tenants }: { authHeaders: Record<st
             </p>
             <div className="flex items-center gap-2 rounded bg-black/20 px-2 py-1.5 font-mono text-xs">
               <span className="flex-1 text-foreground break-all">
-                {`${window.location.origin}/api/super/billing/picpay-webhook?token=<seu-token>`}
+                {`${webhookBase}/api/super/billing/picpay-webhook?token=<seu-token>`}
               </span>
             </div>
             <p className="text-xs text-muted-foreground/70">
@@ -1525,25 +1536,15 @@ export default function Super() {
   const [dnsTarget, setDnsTarget] = useState("");
   const [activeTab, setActiveTab] = useState<"tenants" | "settings">("tenants");
   const [defaultTenantId, setDefaultTenantId] = useState<number | null>(null);
+  const [platformName, setPlatformName] = useState("Super Admin");
+  const [platformLogoUrl, setPlatformLogoUrl] = useState("");
 
-  // Apply platform favicon and title while on /super; restore on unmount
+  // Store original title/favicon on mount and restore on unmount
   useEffect(() => {
     const originalTitle = document.title;
     const originalHref = (document.querySelector("link[rel~='icon']") as HTMLLinkElement | null)?.href ?? "";
-
-    fetch(`${BASE}api/super/settings`)
-      .then(r => r.json())
-      .then((data: Partial<BillingSettings>) => {
-        const faviconRaw = data.platform_favicon_url ?? "";
-        if (faviconRaw) applyFavicon(resolveSuperLogoUrl(faviconRaw), true);
-        const name = data.platform_name ?? "Super Admin";
-        document.title = `${name} — Super Admin`;
-      })
-      .catch(() => {});
-
     return () => {
       document.title = originalTitle;
-      // Restore original favicon when leaving /super
       document.querySelectorAll("link[rel~='icon']").forEach(el => el.remove());
       if (originalHref) {
         const link = document.createElement("link");
@@ -1585,6 +1586,13 @@ export default function Super() {
       if (res.ok) {
         const data: Partial<BillingSettings> = await res.json();
         if (data.default_tenant_id) setDefaultTenantId(Number(data.default_tenant_id));
+        const name = data.platform_name || "Super Admin";
+        setPlatformName(name);
+        document.title = `${name} — Super Admin`;
+        const logoRaw = data.platform_logo_url ?? "";
+        if (logoRaw) setPlatformLogoUrl(resolveSuperLogoUrl(logoRaw));
+        const faviconRaw = data.platform_favicon_url ?? "";
+        if (faviconRaw) applyFavicon(resolveSuperLogoUrl(faviconRaw), true);
       }
     } catch { /* silent */ }
   }, []);
@@ -1617,8 +1625,11 @@ export default function Super() {
       <div className="border-b border-border sticky top-0 bg-background/95 backdrop-blur z-10">
         <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Shield className="w-5 h-5 text-primary" />
-            <span className="font-bold text-lg">PlayHub</span>
+            {platformLogoUrl
+              ? <img src={platformLogoUrl} alt="logo" className="h-7 w-auto object-contain" onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />
+              : <Shield className="w-5 h-5 text-primary" />
+            }
+            <span className="font-bold text-lg">{platformName}</span>
             <Badge variant="outline" className="text-xs">Super Admin</Badge>
           </div>
           <div className="flex items-center gap-2">

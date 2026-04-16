@@ -620,14 +620,34 @@ router.get("/tenants/:id/dns-check", async (req, res) => {
   if (!tenant) return res.status(404).json({ error: "Tenant não encontrado" });
   if (!tenant.customDomain) return res.status(400).json({ error: "Domínio não configurado" });
 
+  // Determine expected IP from APP_URL
+  const appUrl = process.env.APP_URL ?? "";
+  let expectedIp = "";
+  try {
+    const host = new URL(appUrl).hostname;
+    if (/^\d{1,3}(\.\d{1,3}){3}$/.test(host)) {
+      expectedIp = host; // APP_URL is already an IP
+    } else if (host) {
+      const ips = await dns.promises.resolve4(host).catch(() => []);
+      expectedIp = ips[0] ?? "";
+    }
+  } catch { /* ignore */ }
+
   const domain = tenant.customDomain;
   try {
     try {
       const cnames = await dns.promises.resolveCname(domain);
-      return res.json({ connected: true, type: "CNAME", value: cnames[0] });
+      const cnameValue = cnames[0];
+      // For CNAME, check if it resolves to the expected IP (follow the chain)
+      let cnameIp = "";
+      try { cnameIp = (await dns.promises.resolve4(cnameValue))[0] ?? ""; } catch { /* ignore */ }
+      const connected = !expectedIp || cnameIp === expectedIp;
+      return res.json({ connected, type: "CNAME", value: cnameValue, resolvedIp: cnameIp || undefined, expectedIp: expectedIp || undefined });
     } catch {
       const addresses = await dns.promises.resolve4(domain);
-      return res.json({ connected: true, type: "A", value: addresses[0] });
+      const resolvedIp = addresses[0];
+      const connected = !expectedIp || resolvedIp === expectedIp;
+      return res.json({ connected, type: "A", value: resolvedIp, expectedIp: expectedIp || undefined });
     }
   } catch {
     return res.json({ connected: false, error: "DNS não resolvido — propagação pendente ou domínio não configurado" });

@@ -32,6 +32,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.use("/api", storageRouter);
+app.use("/api/storage", storageRouter);
 app.use("/api", domainTenantMiddleware, router);
 
 export default app;

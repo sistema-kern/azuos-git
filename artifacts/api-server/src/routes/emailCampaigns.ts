@@ -227,7 +227,7 @@ router.post("/:id/preview", adminAuth, async (req, res) => {
 
   const previewSubject = `[PREVIEW] ${campaign.subject}`;
   const html = await buildCampaignEmail(campaign.content, campaign.bgColor ?? "#111111", tenantId);
-  const ok = await sendEmail(email, previewSubject, html);
+  const ok = await sendEmail(email, previewSubject, html, tenantId);
   res.json({ success: ok });
 });
 
@@ -264,7 +264,7 @@ router.post("/:id/send", adminAuth, async (req, res) => {
         .replace(/\{\{nome\}\}/gi, recipient.name)
         .replace(/\{\{name\}\}/gi, recipient.name);
       const html = await buildCampaignEmail(personalizedContent, campaign.bgColor ?? "#111111", tenantId);
-      const ok = await sendEmail(recipient.email, campaign.subject, html);
+      const ok = await sendEmail(recipient.email, campaign.subject, html, tenantId);
       if (ok) sent++; else failed++;
       await new Promise((r) => setTimeout(r, 200));
     }

@@ -1,6 +1,6 @@
 import nodemailer from "nodemailer";
 import { db } from "@workspace/db";
-import { settingsTable, tenantAdminsTable } from "@workspace/db/schema";
+import { settingsTable, tenantAdminsTable, tenantsTable } from "@workspace/db/schema";
 import { eq, and } from "drizzle-orm";
 import { getBaseUrl } from "./baseUrl.js";
 import { sendPushToTenant } from "../routes/push.js";
@@ -8,8 +8,8 @@ import { sendPushToTenant } from "../routes/push.js";
 const SMTP_KEYS = ["smtp_host", "smtp_port", "smtp_user", "smtp_pass", "smtp_from_name", "smtp_from_email"] as const;
 type SmtpKey = (typeof SMTP_KEYS)[number];
 
-async function getSmtpSetting(key: SmtpKey): Promise<string | null> {
-  const rows = await db.select().from(settingsTable).where(eq(settingsTable.key, key)).limit(1);
+async function getSmtpSetting(key: SmtpKey, tenantId = 1): Promise<string | null> {
+  const rows = await db.select().from(settingsTable).where(and(eq(settingsTable.tenantId, tenantId), eq(settingsTable.key, key))).limit(1);
   return rows[0]?.value ?? null;
 }
 
@@ -22,14 +22,14 @@ interface SmtpConfig {
   fromEmail: string;
 }
 
-async function getSmtpConfig(): Promise<SmtpConfig | null> {
+async function getSmtpConfig(tenantId = 1): Promise<SmtpConfig | null> {
   const [host, port, user, pass, fromName, fromEmail] = await Promise.all([
-    getSmtpSetting("smtp_host"),
-    getSmtpSetting("smtp_port"),
-    getSmtpSetting("smtp_user"),
-    getSmtpSetting("smtp_pass"),
-    getSmtpSetting("smtp_from_name"),
-    getSmtpSetting("smtp_from_email"),
+    getSmtpSetting("smtp_host", tenantId),
+    getSmtpSetting("smtp_port", tenantId),
+    getSmtpSetting("smtp_user", tenantId),
+    getSmtpSetting("smtp_pass", tenantId),
+    getSmtpSetting("smtp_from_name", tenantId),
+    getSmtpSetting("smtp_from_email", tenantId),
   ]);
 
   if (!host || !user || !pass || !fromEmail) return null;
@@ -54,9 +54,9 @@ async function createTransporter(config: SmtpConfig) {
   });
 }
 
-export async function sendEmail(to: string, subject: string, html: string): Promise<boolean> {
+export async function sendEmail(to: string, subject: string, html: string, tenantId = 1): Promise<boolean> {
   try {
-    const config = await getSmtpConfig();
+    const config = await getSmtpConfig(tenantId);
     if (!config) {
       console.warn("[email] SMTP não configurado — email não enviado");
       return false;
@@ -96,12 +96,19 @@ async function getBrandColor(tenantId = 1): Promise<string> {
   return rows[0]?.value ?? DEFAULT_BRAND_COLOR;
 }
 
+async function getTenantBaseUrl(tenantId = 1): Promise<string> {
+  const rows = await db.select({ customDomain: tenantsTable.customDomain }).from(tenantsTable).where(eq(tenantsTable.id, tenantId)).limit(1);
+  const domain = rows[0]?.customDomain?.trim();
+  if (domain) return `https://${domain}`;
+  return getBaseUrl();
+}
+
 async function getLogoUrl(tenantId = 1): Promise<string | null> {
   const rows = await db.select().from(settingsTable).where(and(eq(settingsTable.tenantId, tenantId), eq(settingsTable.key, "logo_url"))).limit(1);
   const value = rows[0]?.value;
   if (!value) return null;
   if (value.startsWith("http")) return value;
-  const base = getBaseUrl();
+  const base = await getTenantBaseUrl(tenantId);
   if (value.startsWith("/objects/")) return `${base}/api/storage${value}`; // legacy GCS
   if (value.startsWith("/tenant-")) return `${base}/api/uploads${value}`; // local disk
   if (value.startsWith("/api/")) return `${base}${value}`; // already full API path
@@ -229,8 +236,7 @@ function constrainImages(html: string): string {
 }
 
 export async function buildCampaignEmail(campaignContent: string, bgColor: string, tenantId = 1): Promise<string> {
-  const [brandColor, logoUrl, companyName] = await Promise.all([getBrandColor(tenantId), getLogoUrl(tenantId), getCompanyName(tenantId)]);
-  const base = getBaseUrl();
+  const [brandColor, logoUrl, companyName, base] = await Promise.all([getBrandColor(tenantId), getLogoUrl(tenantId), getCompanyName(tenantId), getTenantBaseUrl(tenantId)]);
   const content = constrainImages(absolutifyUrls(campaignContent, base));
 
   const headerContent = logoUrl
@@ -312,7 +318,7 @@ export async function sendCourtBookingConfirmation(data: CourtBookingEmailData):
     ${divider()}
     <p style="margin:0;color:#888;font-size:13px;text-align:center;">Lembre-se de chegar com alguns minutos de antecedência. Caso precise cancelar, entre em contato com antecedência.</p>
   `;
-  await sendEmail(data.customerEmail, `✅ Reserva de Quadra Confirmada – ${companyName}`, baseTemplate(content, brandColor, logoUrl, companyName));
+  await sendEmail(data.customerEmail, `✅ Reserva de Quadra Confirmada – ${companyName}`, baseTemplate(content, brandColor, logoUrl, companyName), tid);
 }
 
 // ──────────────────────────────────────────────────
@@ -347,7 +353,7 @@ export async function sendClassBookingConfirmation(data: ClassBookingEmailData):
     ${divider()}
     <p style="margin:0;color:#888;font-size:13px;text-align:center;">Lembre-se de chegar com alguns minutos de antecedência. Traga sua raquete e boa diversão!</p>
   `;
-  await sendEmail(data.customerEmail, `✅ Aula Confirmada – ${companyName}`, baseTemplate(content, brandColor, logoUrl, companyName));
+  await sendEmail(data.customerEmail, `✅ Aula Confirmada – ${companyName}`, baseTemplate(content, brandColor, logoUrl, companyName), tid);
 }
 
 // ──────────────────────────────────────────────────
@@ -382,7 +388,7 @@ export async function sendCourtBookingCancellation(data: CourtBookingCancellatio
     ${divider()}
     <p style="margin:0;color:#888;font-size:13px;text-align:center;">Se você acredita que isso foi um engano, entre em contato conosco.</p>
   `;
-  await sendEmail(data.customerEmail, `❌ Reserva de Quadra Cancelada – ${companyName}`, baseTemplate(content, brandColor, logoUrl, companyName));
+  await sendEmail(data.customerEmail, `❌ Reserva de Quadra Cancelada – ${companyName}`, baseTemplate(content, brandColor, logoUrl, companyName), tid);
 }
 
 // ──────────────────────────────────────────────────
@@ -415,7 +421,7 @@ export async function sendClassBookingCancellation(data: ClassBookingCancellatio
     ${divider()}
     <p style="margin:0;color:#888;font-size:13px;text-align:center;">Se você acredita que isso foi um engano, entre em contato conosco.</p>
   `;
-  await sendEmail(data.customerEmail, `❌ Aula Cancelada – ${companyName}`, baseTemplate(content, brandColor, logoUrl, companyName));
+  await sendEmail(data.customerEmail, `❌ Aula Cancelada – ${companyName}`, baseTemplate(content, brandColor, logoUrl, companyName), tid);
 }
 
 // ──────────────────────────────────────────────────
@@ -458,7 +464,7 @@ export async function sendPlanWelcomeEmail(data: PlanWelcomeEmailData): Promise<
     ${divider()}
     <p style="margin:0;color:#888;font-size:13px;text-align:center;">Você receberá lembretes por e-mail 1 dia antes de cada reserva. Boas jogadas!</p>
   `;
-  await sendEmail(data.customerEmail, `🏆 Seu Plano Mensalista ${companyName} está Ativo!`, baseTemplate(content, brandColor, logoUrl, companyName));
+  await sendEmail(data.customerEmail, `🏆 Seu Plano Mensalista ${companyName} está Ativo!`, baseTemplate(content, brandColor, logoUrl, companyName), tid);
 }
 
 // ──────────────────────────────────────────────────
@@ -553,7 +559,7 @@ export async function sendTournamentRegistrationEmail(data: TournamentRegistrati
 
   for (const player of data.players) {
     const content = `${greeting(player.fullName)}${bodyShared}`;
-    await sendEmail(player.email, subject, baseTemplate(content, brandColor, logoUrl, companyName));
+    await sendEmail(player.email, subject, baseTemplate(content, brandColor, logoUrl, companyName), tid);
   }
 }
 
@@ -584,7 +590,7 @@ export async function sendBookingReminderEmail(data: BookingReminderEmailData): 
   const subject = isCourtBooking
     ? `⏰ Lembrete: Reserva Amanhã – ${companyName}`
     : `⏰ Lembrete: Aula Amanhã – ${companyName}`;
-  await sendEmail(data.customerEmail, subject, baseTemplate(content, brandColor, logoUrl, companyName));
+  await sendEmail(data.customerEmail, subject, baseTemplate(content, brandColor, logoUrl, companyName), tid);
 }
 
 // ──────────────────────────────────────────────────
